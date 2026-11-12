@@ -6,12 +6,17 @@ export async function POST(req: NextRequest) {
   try {
     const { qrCode, operatorName } = await req.json()
 
-    if (!qrCode) {
+    if (!qrCode || typeof qrCode !== 'string') {
       return NextResponse.json({ valid: false, reason: 'QR code manquant.' }, { status: 400 })
     }
 
+    let cleanCode = qrCode.trim()
+    if (cleanCode.includes('/billet/')) {
+      cleanCode = cleanCode.split('/billet/')[1].split('?')[0].split('#')[0].trim()
+    }
+
     const ticket = await prisma.ticket.findUnique({
-      where: { qrCode },
+      where: { qrCode: cleanCode },
       include: {
         reservation: {
           include: {
