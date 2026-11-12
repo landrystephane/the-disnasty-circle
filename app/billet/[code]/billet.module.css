@@ -1,0 +1,234 @@
+.wrapper {
+  min-height: 100vh;
+  background: #090909;
+  color: #f5f0e8;
+  padding: 1.5rem 1rem 3rem;
+  font-family: inherit;
+}
+
+.topBar {
+  max-width: 680px;
+  margin: 0 auto 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: rgba(20, 20, 20, 0.7);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  border-radius: 12px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--gold);
+  font-family: var(--font-serif);
+  font-size: 1rem;
+  text-decoration: none;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+.ticketContainer {
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+.ticketCard {
+  background: #111111;
+  border: 2px solid var(--gold);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.7), 0 0 30px rgba(212, 175, 55, 0.15);
+}
+
+.ticketHeader {
+  background: linear-gradient(180deg, #1f1807 0%, #111111 100%);
+  padding: 2rem 1.5rem 1.5rem;
+  text-align: center;
+  border-bottom: 1px dashed rgba(212, 175, 55, 0.35);
+}
+
+.eyebrow {
+  font-size: 0.75rem;
+  letter-spacing: 0.2em;
+  color: var(--gold);
+  margin-bottom: 0.4rem;
+  text-transform: uppercase;
+}
+
+.eventTitle {
+  font-family: var(--font-serif);
+  font-size: 2.2rem;
+  color: #fff;
+  margin: 0 0 0.4rem;
+  letter-spacing: 0.02em;
+}
+
+.eventSubtitle {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.ticketBody {
+  padding: 1.75rem;
+}
+
+.metaGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.25rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.metaItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.metaLabel {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin: 0;
+}
+
+.metaValue {
+  font-size: 1rem;
+  color: #f5f0e8;
+  font-weight: 500;
+}
+
+.metaValueGold {
+  font-size: 1rem;
+  color: var(--gold);
+  font-weight: 600;
+}
+
+.guestBox {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding: 1.25rem;
+  background: rgba(212, 175, 55, 0.05);
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  border-radius: 10px;
+  margin: 1.5rem 0;
+}
+
+.guestName {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #fff;
+  font-family: var(--font-serif);
+  margin: 0.2rem 0 0;
+}
+
+.tierName {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--gold);
+  margin: 0.2rem 0 0;
+}
+
+.qrSection {
+  text-align: center;
+  padding: 1rem 0;
+}
+
+.qrLabel {
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  color: var(--gold);
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+}
+
+.qrFrame {
+  display: inline-block;
+  padding: 1rem;
+  background: #ffffff;
+  border: 3px solid var(--gold);
+  border-radius: 12px;
+  box-shadow: 0 0 25px rgba(212, 175, 55, 0.3);
+}
+
+.qrImage {
+  display: block;
+  width: 220px;
+  height: 220px;
+}
+
+.ticketRef {
+  margin: 1rem 0 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  letter-spacing: 0.1em;
+}
+
+.ticketRef span {
+  color: var(--gold);
+  font-weight: 700;
+  font-family: monospace;
+  font-size: 1rem;
+}
+
+.doorNotice {
+  max-width: 460px;
+  margin: 1rem auto 0;
+  font-size: 0.78rem;
+  color: #e67e22;
+  line-height: 1.45;
+  background: rgba(230, 126, 34, 0.1);
+  border: 1px solid rgba(230, 126, 34, 0.3);
+  padding: 0.6rem 0.9rem;
+  border-radius: 8px;
+}
+
+.ticketFooter {
+  background: #0b0b0b;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 1.25rem 1.5rem;
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.ticketFooter p {
+  margin: 0;
+}
+
+@media print {
+  .topBar {
+    display: none !important;
+  }
+  .wrapper {
+    background: #fff !important;
+    padding: 0 !important;
+  }
+  .ticketCard {
+    box-shadow: none !important;
+    border: 2px solid #000 !important;
+    background: #fff !important;
+    color: #000 !important;
+  }
+  .eventTitle, .guestName {
+    color: #000 !important;
+  }
+  .metaValue, .tierName, .metaValueGold {
+    color: #000 !important;
+  }
+  .ticketHeader, .ticketBody, .ticketFooter {
+    background: #fff !important;
+  }
+}

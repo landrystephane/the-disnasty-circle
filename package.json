@@ -1,0 +1,42 @@
+{
+  "name": "disnasty-circle",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --webpack",
+    "build": "prisma generate && next build --webpack",
+    "vercel-build": "prisma generate && prisma db push --accept-data-loss && node prisma/seed.js && next build --webpack",
+    "start": "next start",
+    "lint": "eslint",
+    "seed": "node prisma/seed.js",
+    "postinstall": "prisma generate"
+  },
+  "prisma": {
+    "seed": "node prisma/seed.js"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.22.0",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/nodemailer": "^8.0.2",
+    "@types/qrcode": "^1.5.6",
+    "@types/uuid": "^10.0.0",
+    "bcryptjs": "^3.0.3",
+    "next": "16.4.6",
+    "next-auth": "^4.24.15",
+    "nodemailer": "^7.0.13",
+    "prisma": "^5.22.0",
+    "qrcode": "^1.5.4",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "uuid": "^14.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.4.6",
+    "ts-node": "^10.9.2",
+    "typescript": "^5"
+  }
+}

@@ -1,0 +1,114 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Event {
+  id             String   @id @default(cuid())
+  slug           String   @unique
+  title          String
+  subtitle       String?
+  date           DateTime
+  location       String
+  timeStart      String
+  description    String?
+  posterUrl      String?
+  dressCode      String?
+  includes       String?
+  status         String   @default("ACTIVE")
+  whatsappNumber String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  ticketPhases TicketPhase[]
+  reservations Reservation[]
+  expenses     Expense[]
+}
+
+model TicketPhase {
+  id          String    @id @default(cuid())
+  eventId     String
+  event       Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  name        String
+  price       Float
+  maxQuantity Int?
+  soldCount   Int       @default(0)
+  startDate   DateTime?
+  endDate     DateTime?
+  isActive    Boolean   @default(true)
+  order       Int       @default(0)
+  createdAt   DateTime  @default(now())
+
+  reservations Reservation[]
+}
+
+model Reservation {
+  id          String   @id @default(cuid())
+  eventId     String
+  event       Event    @relation(fields: [eventId], references: [id])
+  phaseId     String?
+  phase       TicketPhase? @relation(fields: [phaseId], references: [id])
+  firstName   String
+  lastName    String
+  email       String
+  phone       String?
+  ticketCount Int      @default(1)
+  wantsMask   Boolean  @default(false)
+  maskCount   Int      @default(0)
+  message     String?
+  status      String   @default("PENDING")
+  totalAmount Float?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tickets Ticket[]
+}
+
+model Ticket {
+  id            String    @id @default(cuid())
+  reservationId String
+  reservation   Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  qrCode        String    @unique
+  ticketNumber  Int       @default(1)
+  hasMask       Boolean   @default(false)
+  isUsed        Boolean   @default(false)
+  usedAt        DateTime?
+  usedBy        String?
+  sentAt        DateTime?
+  createdAt     DateTime  @default(now())
+}
+
+model Expense {
+  id          String   @id @default(cuid())
+  eventId     String?
+  event       Event?   @relation(fields: [eventId], references: [id])
+  category    String
+  description String
+  amount      Float
+  date        DateTime @default(now())
+  addedBy     String?
+  createdAt   DateTime @default(now())
+}
+
+model Donation {
+  id          String   @id @default(cuid())
+  donorName   String
+  amount      Float
+  type        String   @default("DON")
+  notes       String?
+  date        DateTime @default(now())
+  createdAt   DateTime @default(now())
+}
+
+model StaffUser {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         String   @default("STAFF")
+  createdAt    DateTime @default(now())
+}
