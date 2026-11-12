@@ -72,10 +72,43 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
         </div>
       </aside>
 
+      {/* MOBILE TOP HEADER */}
+      <header className={styles.mobileTopBar}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+          <img src="/logo.png" alt="TDC" style={{ height: '32px', width: 'auto', borderRadius: '4px' }} />
+          <span style={{ fontFamily: 'var(--font-serif)', color: 'var(--gold)', fontWeight: 700, fontSize: '1rem', letterSpacing: '0.05em' }}>
+            DISNASTY CIRCLE
+          </span>
+        </div>
+        <button
+          onClick={handleLogout}
+          style={{ background: 'none', border: 'none', color: 'var(--danger)', fontSize: '0.82rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
+        >
+          <span>🚪</span>
+          <span>Sortir</span>
+        </button>
+      </header>
+
       {/* MAIN */}
       <main className={styles.main}>
         {children}
       </main>
+
+      {/* MOBILE BOTTOM NAV */}
+      <nav className={styles.mobileNav}>
+        {navItems.map(item => (
+          <Link
+            key={item.href}
+            href={item.href}
+            className={`${styles.mobileNavItem} ${pathname.startsWith(item.href) ? styles.mobileNavItemActive : ''}`}
+          >
+            <span className={styles.mobileNavIcon}>{item.icon}</span>
+            <span className={styles.mobileNavLabel}>
+              {item.label === 'Tableau de bord' ? 'Bord' : item.label === 'Comptabilité' ? 'Compta' : item.label}
+            </span>
+          </Link>
+        ))}
+      </nav>
     </div>
   )
 }

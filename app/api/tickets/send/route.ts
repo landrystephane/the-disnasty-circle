@@ -220,12 +220,13 @@ export async function POST(req: NextRequest) {
       const ticketNumber = i + 1
 
       if (existing) {
-        await prisma.$executeRawUnsafe(
-          'UPDATE Ticket SET ticketNumber = ?, hasMask = ? WHERE id = ?',
-          ticketNumber,
-          hasMask ? 1 : 0,
-          existing.id
-        )
+        await prisma.ticket.update({
+          where: { id: existing.id },
+          data: {
+            ticketNumber,
+            hasMask,
+          },
+        })
         ticketsData.push({
           qrCode: existing.qrCode,
           ticketNumber,
@@ -237,18 +238,14 @@ export async function POST(req: NextRequest) {
           data: {
             reservationId: reservation.id,
             qrCode,
+            ticketNumber,
+            hasMask,
           },
         })
-        await prisma.$executeRawUnsafe(
-          'UPDATE Ticket SET ticketNumber = ?, hasMask = ? WHERE id = ?',
-          ticketNumber,
-          hasMask ? 1 : 0,
-          newTicket.id
-        )
         ticketsData.push({
-          qrCode,
-          ticketNumber,
-          hasMask,
+          qrCode: newTicket.qrCode,
+          ticketNumber: newTicket.ticketNumber,
+          hasMask: newTicket.hasMask,
         })
       }
     }
@@ -271,17 +268,25 @@ export async function POST(req: NextRequest) {
 
     const phaseName = reservation.phase?.name ?? 'Standard'
     const eventDate = formatDate(reservation.event.date)
-    const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000'
+    const baseUrl = process.env.NEXTAUTH_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
 
     // Build CID attachments
+    const attachments: nodemailer.SendMailOptions['attachments'] = []
+
+    // Safely attach logo if present
     const logoPath = path.join(process.cwd(), 'public', 'logo.png')
-    const attachments: nodemailer.SendMailOptions['attachments'] = [
-      {
-        filename: 'logo.png',
-        path: logoPath,
-        cid: 'disnasty-logo',
-      },
-    ]
+    try {
+      const fs = await import('fs')
+      if (fs.existsSync(logoPath)) {
+        attachments.push({
+          filename: 'logo.png',
+          path: logoPath,
+          cid: 'disnasty-logo',
+        })
+      }
+    } catch (logoErr) {
+      console.warn('Could not read logo for email:', logoErr)
+    }
 
     for (let i = 0; i < ticketsData.length; i++) {
       const t = ticketsData[i]
@@ -342,8 +347,11 @@ export async function POST(req: NextRequest) {
       phone: (reservation as any).phone || null,
       isMockEmail,
     })
-  } catch (err) {
+  } catch (err: any) {
     console.error('Send ticket error:', err)
-    return NextResponse.json({ error: 'Erreur lors de l\'envoi du billet.' }, { status: 500 })
+    return NextResponse.json({
+      error: 'Erreur lors de l\'envoi du billet: ' + (err?.message || String(err)),
+      details: String(err?.stack || err),
+    }, { status: 500 })
   }
 }

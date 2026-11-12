@@ -84,11 +84,16 @@ export default function StaffDashboard() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ reservationId }),
       })
-      if (res.ok) {
+      const data = await res.json()
+      if (res.ok && data.success) {
         setSendSuccess(reservationId)
         await loadData()
         setTimeout(() => setSendSuccess(null), 3000)
+      } else {
+        alert(data.error || 'Erreur lors de l\'envoi du billet.')
       }
+    } catch (err: any) {
+      alert('Erreur réseau : ' + (err?.message || 'Erreur inconnue'))
     } finally {
       setSendingId(null)
     }
@@ -125,6 +130,31 @@ export default function StaffDashboard() {
           <Link href="/staff/soirees" className="btn btn-gold btn-sm">Gérer les soirées</Link>
           <button onClick={loadData} className="btn btn-outline btn-sm">↻ Rafraîchir</button>
         </div>
+      </div>
+
+      {/* Raccourcis Staff Mobile & Desktop */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(135px, 1fr))',
+        gap: '0.75rem',
+        marginBottom: '1.75rem'
+      }}>
+        <Link href="/staff/scanner" className="btn btn-gold" style={{ justifyContent: 'center', padding: '0.85rem 0.5rem', fontSize: '0.88rem', gap: '0.4rem', textDecoration: 'none' }}>
+          <span>🔍</span>
+          <span>Scanner QR</span>
+        </Link>
+        <Link href="/staff/reservations" className="btn btn-outline" style={{ justifyContent: 'center', padding: '0.85rem 0.5rem', fontSize: '0.88rem', gap: '0.4rem', textDecoration: 'none' }}>
+          <span>🎫</span>
+          <span>Réservations</span>
+        </Link>
+        <Link href="/staff/soirees" className="btn btn-outline" style={{ justifyContent: 'center', padding: '0.85rem 0.5rem', fontSize: '0.88rem', gap: '0.4rem', textDecoration: 'none' }}>
+          <span>🎉</span>
+          <span>Soirées</span>
+        </Link>
+        <Link href="/staff/comptabilite" className="btn btn-outline" style={{ justifyContent: 'center', padding: '0.85rem 0.5rem', fontSize: '0.88rem', gap: '0.4rem', textDecoration: 'none' }}>
+          <span>💰</span>
+          <span>Comptabilité</span>
+        </Link>
       </div>
 
       {/* Stats */}
