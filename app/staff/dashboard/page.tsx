@@ -57,10 +57,13 @@ export default function StaffDashboard() {
       // Compute stats
       const s: Stats = { total: 0, pending: 0, confirmed: 0, cancelled: 0, revenue: 0, ticketsSent: 0 }
       for (const r of list) {
+        if (r.status === 'CANCELLED') {
+          s.cancelled++
+          continue // Exclure strictement les réservations annulées des comptes de la soirée
+        }
         s.total++
         if (r.status === 'PENDING')   s.pending++
         if (r.status === 'CONFIRMED') { s.confirmed++; s.revenue += r.totalAmount ?? 0 }
-        if (r.status === 'CANCELLED') s.cancelled++
         if (Array.isArray(r.tickets)) {
           s.ticketsSent += r.tickets.filter((t: { sentAt: string | null }) => t.sentAt).length
         }
@@ -102,7 +105,7 @@ export default function StaffDashboard() {
   function getWhatsAppUrl(reservation: Reservation) {
     const phone = reservation.event.whatsappNumber.replace(/\D/g, '')
     const msg = encodeURIComponent(
-      `Bonjour ${reservation.firstName} ${reservation.lastName} 👋,\n\nNous avons bien reçu votre demande de réservation pour *${reservation.event.title}*.\n\nPour confirmer votre place, merci de procéder au virement de *${reservation.totalAmount ?? '...'}€*.\n\nUne fois le paiement reçu, nous vous enverrons votre billet par email dans les plus brefs délais. 🎭✨\n\nTHE DISNASTY CIRCLE`
+      `Bonjour ${reservation.firstName} ${reservation.lastName} 👋,\n\nNous avons bien reçu votre demande de réservation pour *${reservation.event.title}*.\n\nPour confirmer votre place, merci de procéder au virement de *${reservation.totalAmount ?? '...'}€*.\n\nUne fois le paiement reçu, nous vous enverrons votre billet par email dans les plus brefs délais. 🎭✨\n\nTHE DYNASTY CIRCLE`
     )
     return `https://wa.me/${phone}?text=${msg}`
   }

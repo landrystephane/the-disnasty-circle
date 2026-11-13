@@ -59,6 +59,17 @@ export default function StaffReservations() {
   }, [loadData])
 
   async function updateStatus(id: string, newStatus: string) {
+    if (newStatus === 'CANCELLED') {
+      const ok = window.confirm(
+        '⚠️ Êtes-vous sûr de vouloir ANNULER cette réservation ?\n\n' +
+        '• Le billet et son code QR seront IMMÉDIATEMENT désactivés.\n' +
+        '• Le scanner rejettera l\'accès à l\'entrée.\n' +
+        '• Les places seront libérées du quota de la soirée.\n\n' +
+        'Confirmer l\'annulation ?'
+      )
+      if (!ok) return
+    }
+
     try {
       const res = await fetch('/api/reservations', {
         method: 'PATCH',
@@ -69,15 +80,50 @@ export default function StaffReservations() {
         setReservations(prev =>
           prev.map(r => (r.id === id ? { ...r, status: newStatus } : r))
         )
-        setSuccessMsg(`Statut mis à jour : ${newStatus}`)
-        setTimeout(() => setSuccessMsg(null), 3000)
+        setSuccessMsg(`Statut mis à jour : ${newStatus === 'CANCELLED' ? '❌ Annulée' : '✅ Confirmée'}`)
+        setTimeout(() => setSuccessMsg(null), 3500)
+      } else {
+        alert('Erreur lors de la mise à jour du statut.')
       }
     } catch (err) {
       console.error(err)
+      alert('Erreur réseau lors de la mise à jour.')
     }
   }
 
-  async function sendTicket(reservationId: string) {
+  function handleRestoreReservation(id: string) {
+    const pin = window.prompt(
+      '🔒 Déverrouillage sécurisé\n\nEntrez le code PIN administrateur pour restaurer cette réservation annulée :'
+    )
+    if (!pin) return
+
+    const normalizedPin = pin.trim().toUpperCase()
+    if (normalizedPin !== 'DYNASTY2026' && normalizedPin !== 'TDC2026') {
+      alert('❌ Code PIN incorrect. Action refusée.')
+      return
+    }
+
+    updateStatus(id, 'CONFIRMED')
+  }
+
+  async function sendTicket(reservationId: string, alreadySentDate?: string | null) {
+    if (alreadySentDate) {
+      const formattedDate = new Date(alreadySentDate).toLocaleDateString('fr-FR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
+      const ok = window.confirm(
+        `ℹ️ Ce billet a déjà été envoyé au client le ${formattedDate}.\n\n` +
+        `Rappel important :\n` +
+        `Le code QR est strictement à USAGE UNIQUE (il ne permettra qu'une seule entrée au scan).\n\n` +
+        `Voulez-vous quand même renvoyer une copie de courtoisie par email ?`
+      )
+      if (!ok) return
+    }
+
     setSendingId(reservationId)
     try {
       const res = await fetch('/api/tickets/send', {
@@ -116,7 +162,7 @@ export default function StaffReservations() {
     const cleanPhone = rawPhone.replace(/\D/g, '')
     if (!cleanPhone) return null
     const msg = encodeURIComponent(
-      `Bonjour ${r.firstName} ${r.lastName},\n\nC'est l'équipe THE DISNASTY CIRCLE concernant votre réservation pour *${r.event.title}* (${r.ticketCount} place(s) - Total: ${r.totalAmount ?? '...'}€).\n\nVotre réservation est bien enregistrée !`
+      `Bonjour ${r.firstName} ${r.lastName},\n\nC'est l'équipe THE DYNASTY CIRCLE concernant votre réservation pour *${r.event.title}* (${r.ticketCount} place(s) - Total: ${r.totalAmount ?? '...'}€).\n\nVotre réservation est bien enregistrée !`
     )
     return `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${msg}`
   }
@@ -127,17 +173,21 @@ export default function StaffReservations() {
     const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'
     const ticketUrl = `${origin}/billet/${qrCode}`
     const msg = encodeURIComponent(
-      `Bonjour ${r.firstName} ! Voici votre e-billet officiel THE DISNASTY CIRCLE pour *${r.event.title}* :\n\n🔗 ${ticketUrl}\n\nVeuillez présenter ce QR code à l'accueil lors de votre arrivée. À très bientôt !`
+      `Bonjour ${r.firstName} ! Voici votre e-billet officiel THE DYNASTY CIRCLE pour *${r.event.title}* :\n\n🔗 ${ticketUrl}\n\nVeuillez présenter ce QR code à l'accueil lors de votre arrivée (validité : 1 entrée unique). À très bientôt !`
     )
     return cleanPhone
       ? `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${msg}`
       : `https://api.whatsapp.com/send?text=${msg}`
   }
 
-  const beCount = reservations.filter(r => (r.phone || '').replace(/\D/g, '').startsWith('32')).length
-  const deCount = reservations.filter(r => (r.phone || '').replace(/\D/g, '').startsWith('49')).length
-  const frCount = reservations.filter(r => (r.phone || '').replace(/\D/g, '').startsWith('33')).length
-  const otherCount = reservations.length - (beCount + deCount + frCount)
+  const activeReservations = reservations.filter(r => r.status !== 'CANCELLED')
+  const activeTicketsCount = activeReservations.reduce((sum, r) => sum + r.ticketCount, 0)
+  const cancelledCount = reservations.filter(r => r.status === 'CANCELLED').length
+
+  const beCount = activeReservations.filter(r => (r.phone || '').replace(/\D/g, '').startsWith('32')).length
+  const deCount = activeReservations.filter(r => (r.phone || '').replace(/\D/g, '').startsWith('49')).length
+  const frCount = activeReservations.filter(r => (r.phone || '').replace(/\D/g, '').startsWith('33')).length
+  const otherCount = activeReservations.length - (beCount + deCount + frCount)
 
   const filtered = reservations.filter(r => {
     const matchFilter = filter === 'ALL' || r.status === filter
@@ -168,7 +218,13 @@ export default function StaffReservations() {
             Gestion des Réservations
           </h1>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-            {reservations.length} réservation(s) au total • Équipe Staff : 🇧🇪 Belgique, 🇩🇪 Allemagne, 🇫🇷 France
+            <strong style={{ color: '#2ecc71' }}>{activeReservations.length} active(s)</strong> ({activeTicketsCount} billet(s) comptabilisé(s))
+            {cancelledCount > 0 && (
+              <span style={{ color: '#e74c3c', marginLeft: '0.6rem' }}>
+                • {cancelledCount} annulée(s) (non comptabilisée(s))
+              </span>
+            )}
+            {' '}• Équipe Staff : 🇧🇪 Belgique, 🇩🇪 Allemagne, 🇫🇷 France
           </p>
         </div>
         <button onClick={loadData} className="btn btn-outline btn-sm">
@@ -299,26 +355,52 @@ export default function StaffReservations() {
               </thead>
               <tbody>
                 {filtered.map(r => {
+                  const isCancelled = r.status === 'CANCELLED'
                   const sentCount = r.tickets.filter(t => t.sentAt).length
                   const chatUrl = getClientWhatsAppChatUrl(r)
                   const firstTicket = r.tickets[0]
                   const country = detectCountryFromPhone(r.phone)
 
                   return (
-                    <tr key={r.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                    <tr
+                      key={r.id}
+                      style={{
+                        borderBottom: '1px solid var(--border)',
+                        ...(isCancelled ? {
+                          opacity: 0.45,
+                          background: 'rgba(255, 59, 48, 0.04)',
+                          filter: 'grayscale(0.7)',
+                        } : {})
+                      }}
+                    >
                       {/* Client */}
                       <td style={{ padding: '1rem' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                           <span style={{ fontSize: '1.1rem' }}>{country.flag}</span>
-                          <span style={{ fontWeight: 600, color: 'var(--text)' }}>
+                          <span style={{
+                            fontWeight: 600,
+                            color: isCancelled ? 'var(--text-muted)' : 'var(--text)',
+                            textDecoration: isCancelled ? 'line-through' : 'none'
+                          }}>
                             {r.firstName} {r.lastName}
                           </span>
                         </div>
-                        <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: '0.15rem' }}>
+                        <div style={{
+                          color: 'var(--text-muted)',
+                          fontSize: '0.8rem',
+                          marginTop: '0.15rem',
+                          textDecoration: isCancelled ? 'line-through' : 'none'
+                        }}>
                           📧 {r.email}
                         </div>
                         {r.phone && (
-                          <div style={{ color: 'var(--gold)', fontSize: '0.82rem', marginTop: '0.15rem', fontWeight: 500 }}>
+                          <div style={{
+                            color: isCancelled ? 'var(--text-dim)' : 'var(--gold)',
+                            fontSize: '0.82rem',
+                            marginTop: '0.15rem',
+                            fontWeight: 500,
+                            textDecoration: isCancelled ? 'line-through' : 'none'
+                          }}>
                             📱 {r.phone}
                           </div>
                         )}
@@ -329,21 +411,38 @@ export default function StaffReservations() {
 
                       {/* Soirée & Billets */}
                       <td style={{ padding: '1rem' }}>
-                        <div style={{ color: 'var(--gold)', fontWeight: 500 }}>
+                        <div style={{
+                          color: isCancelled ? 'var(--text-dim)' : 'var(--gold)',
+                          fontWeight: 500,
+                          textDecoration: isCancelled ? 'line-through' : 'none'
+                        }}>
                           {r.event.title}
                         </div>
-                        <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                        <div style={{
+                          color: isCancelled ? 'var(--text-dim)' : 'var(--text-muted)',
+                          fontSize: '0.8rem',
+                          textDecoration: isCancelled ? 'line-through' : 'none'
+                        }}>
                           {r.ticketCount}x {r.phase?.name ?? 'Standard'}
                         </div>
-                        {(r.maskCount > 0 || r.wantsMask) && (
+                        {isCancelled ? (
+                          <div style={{ color: '#e74c3c', fontSize: '0.75rem', fontWeight: 600, marginTop: '0.25rem' }}>
+                            🛑 Non comptabilisé (Annulé)
+                          </div>
+                        ) : (r.maskCount > 0 || r.wantsMask) ? (
                           <div style={{ color: 'var(--gold)', fontSize: '0.78rem', marginTop: '0.2rem' }}>
                             🎭 {r.maskCount > 0 ? `${r.maskCount} masque(s)` : 'Masque inclus'}
                           </div>
-                        )}
+                        ) : null}
                       </td>
 
                       {/* Total */}
-                      <td style={{ padding: '1rem', fontWeight: 600, color: 'var(--gold)' }}>
+                      <td style={{
+                        padding: '1rem',
+                        fontWeight: 600,
+                        color: isCancelled ? 'var(--text-dim)' : 'var(--gold)',
+                        textDecoration: isCancelled ? 'line-through' : 'none'
+                      }}>
                         {r.totalAmount != null ? `${r.totalAmount}€` : '—'}
                       </td>
 
@@ -351,16 +450,23 @@ export default function StaffReservations() {
                       <td style={{ padding: '1rem' }}>
                         <span className={`badge ${
                           r.status === 'CONFIRMED' ? 'badge-success' :
-                          r.status === 'CANCELLED' ? 'badge-danger' : 'badge-warning'
+                          isCancelled ? 'badge-danger' : 'badge-warning'
                         }`}>
                           {r.status === 'CONFIRMED' ? 'Confirmé' :
-                           r.status === 'CANCELLED' ? 'Annulé' : 'En attente'}
+                           isCancelled ? '❌ Annulé' : 'En attente'}
                         </span>
                       </td>
 
                       {/* Billets QR */}
                       <td style={{ padding: '1rem' }}>
-                        {firstTicket ? (
+                        {isCancelled ? (
+                          <div style={{ color: '#e74c3c', fontSize: '0.8rem', fontWeight: 600 }}>
+                            🛑 QR Désactivé
+                            <span style={{ display: 'block', fontSize: '0.72rem', color: 'var(--text-dim)', fontWeight: 400 }}>
+                              Entrée refusée au scan
+                            </span>
+                          </div>
+                        ) : firstTicket ? (
                           <div>
                             <span style={{ color: '#2ecc71', fontSize: '0.82rem', fontWeight: 600, display: 'block' }}>
                               ✓ QR Généré ({r.tickets.length})
@@ -368,6 +474,11 @@ export default function StaffReservations() {
                             <span style={{ color: 'var(--text-dim)', fontSize: '0.75rem' }}>
                               Ref: {firstTicket.qrCode.slice(0, 8).toUpperCase()}
                             </span>
+                            {firstTicket.sentAt && (
+                              <span style={{ display: 'block', color: 'var(--gold)', fontSize: '0.72rem' }}>
+                                ✉️ Envoyé le {new Date(firstTicket.sentAt).toLocaleDateString('fr-FR')}
+                              </span>
+                            )}
                           </div>
                         ) : (
                           <span style={{ color: 'var(--text-dim)', fontSize: '0.85rem' }}>
@@ -378,90 +489,113 @@ export default function StaffReservations() {
 
                       {/* Actions */}
                       <td style={{ padding: '1rem', textAlign: 'right' }}>
-                        <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-                          {/* Chat direct avec le numéro du client */}
-                          {chatUrl ? (
-                            <a
-                              href={chatUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="btn btn-outline btn-sm"
-                              style={{ color: '#25D366', borderColor: 'rgba(37,211,102,0.4)', padding: '0.35rem 0.6rem' }}
-                              title="Discuter directement avec le client sur son WhatsApp"
-                            >
-                              💬 Chat WA
-                            </a>
-                          ) : (
+                        {isCancelled ? (
+                          /* AUCUNE OPTION NORMALE LORSQUE ANNULÉ — SEULE RESTAURATION PAR CODE PIN */
+                          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                             <button
-                              onClick={() => alert(`Ce client n'a pas renseigné de numéro de téléphone.`)}
+                              onClick={() => handleRestoreReservation(r.id)}
                               className="btn btn-outline btn-sm"
-                              style={{ opacity: 0.4, padding: '0.35rem 0.6rem' }}
-                              title="Pas de téléphone"
+                              style={{
+                                color: 'var(--gold)',
+                                borderColor: 'var(--gold-border)',
+                                padding: '0.35rem 0.75rem',
+                                fontSize: '0.78rem'
+                              }}
+                              title="Restaurer cette réservation avec le code PIN secret"
                             >
-                              💬 Chat WA
+                              🔓 Restaurer (Code PIN)
                             </button>
-                          )}
-
-                          {/* Voir le billet si généré */}
-                          {firstTicket && (
-                            <>
-                              <Link
-                                href={`/billet/${firstTicket.qrCode}`}
-                                target="_blank"
-                                className="btn btn-outline btn-sm"
-                                style={{ color: 'var(--gold)', borderColor: 'var(--gold-border)', padding: '0.35rem 0.6rem' }}
-                                title="Voir, imprimer ou enregistrer en PDF"
-                              >
-                                👁️ Billet
-                              </Link>
-
+                          </div>
+                        ) : (
+                          <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                            {/* Chat direct avec le numéro du client */}
+                            {chatUrl ? (
                               <a
-                                href={getClientTicketShareUrl(r, firstTicket.qrCode)}
+                                href={chatUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="btn btn-whatsapp btn-sm"
-                                style={{ padding: '0.35rem 0.6rem' }}
-                                title="Envoyer le lien du billet sur le WhatsApp du client"
+                                className="btn btn-outline btn-sm"
+                                style={{ color: '#25D366', borderColor: 'rgba(37,211,102,0.4)', padding: '0.35rem 0.6rem' }}
+                                title="Discuter directement avec le client sur son WhatsApp"
                               >
-                                📲 Billet WA
+                                💬 Chat WA
                               </a>
-                            </>
-                          )}
+                            ) : (
+                              <button
+                                onClick={() => alert(`Ce client n'a pas renseigné de numéro de téléphone.`)}
+                                className="btn btn-outline btn-sm"
+                                style={{ opacity: 0.4, padding: '0.35rem 0.6rem' }}
+                                title="Pas de téléphone"
+                              >
+                                💬 Chat WA
+                              </button>
+                            )}
 
-                          {/* Générer / envoyer email */}
-                          <button
-                            onClick={() => sendTicket(r.id)}
-                            disabled={sendingId === r.id}
-                            className="btn btn-gold btn-sm"
-                            style={{ padding: '0.35rem 0.7rem' }}
-                            title="Générer le billet QR et envoyer par email"
-                          >
-                            {sendingId === r.id ? '...' : (firstTicket ? '✉️ Renvoyer' : '🎟️ Créer billet')}
-                          </button>
+                            {/* Voir le billet si généré */}
+                            {firstTicket && (
+                              <>
+                                <Link
+                                  href={`/billet/${firstTicket.qrCode}`}
+                                  target="_blank"
+                                  className="btn btn-outline btn-sm"
+                                  style={{ color: 'var(--gold)', borderColor: 'var(--gold-border)', padding: '0.35rem 0.6rem' }}
+                                  title="Voir, imprimer ou enregistrer en PDF"
+                                >
+                                  👁️ Billet
+                                </Link>
 
-                          {/* Statut check/cross */}
-                          {r.status !== 'CONFIRMED' && (
+                                <a
+                                  href={getClientTicketShareUrl(r, firstTicket.qrCode)}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="btn btn-whatsapp btn-sm"
+                                  style={{ padding: '0.35rem 0.6rem' }}
+                                  title="Envoyer le lien du billet sur le WhatsApp du client"
+                                >
+                                  📲 Billet WA
+                                </a>
+                              </>
+                            )}
+
+                            {/* Générer / envoyer email */}
                             <button
-                              onClick={() => updateStatus(r.id, 'CONFIRMED')}
-                              className="btn btn-outline btn-sm"
-                              style={{ color: '#2ecc71', borderColor: 'rgba(46,204,113,0.3)', padding: '0.35rem 0.5rem' }}
-                              title="Confirmer la réservation"
+                              onClick={() => sendTicket(r.id, firstTicket?.sentAt)}
+                              disabled={sendingId === r.id}
+                              className="btn btn-gold btn-sm"
+                              style={{ padding: '0.35rem 0.7rem' }}
+                              title={firstTicket?.sentAt ? 'Déjà envoyé — Cliquez pour renvoyer une copie' : 'Générer le billet QR et envoyer par email'}
                             >
-                              ✓
+                              {sendingId === r.id
+                                ? '...'
+                                : firstTicket?.sentAt
+                                ? '✉️ Déjà envoyé'
+                                : firstTicket
+                                ? '✉️ Envoyer billet'
+                                : '🎟️ Créer billet'}
                             </button>
-                          )}
 
-                          {r.status !== 'CANCELLED' && (
+                            {/* Statut check/cross */}
+                            {r.status !== 'CONFIRMED' && (
+                              <button
+                                onClick={() => updateStatus(r.id, 'CONFIRMED')}
+                                className="btn btn-outline btn-sm"
+                                style={{ color: '#2ecc71', borderColor: 'rgba(46,204,113,0.3)', padding: '0.35rem 0.5rem' }}
+                                title="Confirmer la réservation"
+                              >
+                                ✓
+                              </button>
+                            )}
+
                             <button
                               onClick={() => updateStatus(r.id, 'CANCELLED')}
                               className="btn btn-outline btn-sm"
                               style={{ color: '#e74c3c', borderColor: 'rgba(231,76,60,0.3)', padding: '0.35rem 0.5rem' }}
-                              title="Annuler la réservation"
+                              title="Annuler la réservation (Désactive le QR code et libère les places)"
                             >
                               ✕
                             </button>
-                          )}
-                        </div>
+                          </div>
+                        )}
                       </td>
                     </tr>
                   )

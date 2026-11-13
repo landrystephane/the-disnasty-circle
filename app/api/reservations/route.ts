@@ -90,6 +90,11 @@ export async function PATCH(req: NextRequest) {
     const { id, status, notes, totalAmount, wantsMask, ticketCount } = body
     if (!id) return NextResponse.json({ error: 'id requis.' }, { status: 400 })
 
+    const current = await prisma.reservation.findUnique({
+      where: { id },
+      select: { status: true, phaseId: true, ticketCount: true },
+    })
+
     const updated = await prisma.reservation.update({
       where: { id },
       data: {
@@ -100,6 +105,23 @@ export async function PATCH(req: NextRequest) {
         ...(ticketCount !== undefined ? { ticketCount } : {}),
       },
     })
+
+    // Décompter automatiquement les billets si réservation annulée
+    if (status === 'CANCELLED' && current?.status !== 'CANCELLED' && current?.phaseId) {
+      await prisma.ticketPhase.update({
+        where: { id: current.phaseId },
+        data: { soldCount: { decrement: current.ticketCount } },
+      }).catch(() => {})
+    }
+
+    // Ré-incrémenter si la réservation est restaurée
+    if (status === 'CONFIRMED' && current?.status === 'CANCELLED' && current?.phaseId) {
+      await prisma.ticketPhase.update({
+        where: { id: current.phaseId },
+        data: { soldCount: { increment: current.ticketCount } },
+      }).catch(() => {})
+    }
+
     return NextResponse.json({ success: true, reservation: updated })
   } catch (err) {
     console.error('Update reservation error:', err)

@@ -60,7 +60,7 @@ function buildWhatsAppMessage(data: {
     ? `• Masque(s) sur place : *${data.maskCount}x* (+${maskTotal}€)\n`
     : ''
 
-  const message = `Bonjour THE DISNASTY CIRCLE,
+  const message = `Bonjour THE DYNASTY CIRCLE,
 
 Je m'appelle *${data.firstName} ${data.lastName}* et je souhaite reserver *${data.ticketCount} billet(s)* pour :
 

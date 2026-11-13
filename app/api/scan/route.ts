@@ -35,6 +35,17 @@ export async function POST(req: NextRequest) {
       })
     }
 
+    // Règle de révocation stricte : Billet rattaché à une réservation annulée
+    if (ticket.reservation.status === 'CANCELLED') {
+      return NextResponse.json({
+        valid: false,
+        reason: 'RÉSERVATION ANNULÉE : Ce billet a été révoqué par l\'organisation. Entrée strictement refusée !',
+        status: 'CANCELLED',
+        holder: `${ticket.reservation.firstName} ${ticket.reservation.lastName}`,
+        event:  ticket.reservation.event.title,
+      })
+    }
+
     if (ticket.isUsed) {
       return NextResponse.json({
         valid: false,

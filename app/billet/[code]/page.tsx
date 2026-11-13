@@ -31,7 +31,7 @@ export async function generateMetadata({ params }: Props) {
 
   if (!ticket) return { title: 'Billet Introuvable' }
   return {
-    title: `Billet Officiel — ${ticket.reservation.event.title} | THE DISNASTY CIRCLE`,
+    title: `Billet Officiel — ${ticket.reservation.event.title} | THE DYNASTY CIRCLE`,
     description: `Billet d'entrée pour ${ticket.reservation.firstName} ${ticket.reservation.lastName}`,
   }
 }
@@ -80,8 +80,8 @@ export default async function BilletPage({ params }: Props) {
       {/* Top Bar (No Print) */}
       <div className={styles.topBar}>
         <Link href="/" className={styles.brand}>
-          <img src="/logo.png" alt="THE DISNASTY CIRCLE" style={{ height: '36px', width: 'auto', borderRadius: '4px' }} />
-          <span>THE DISNASTY CIRCLE</span>
+          <img src="/logo.png" alt="THE DYNASTY CIRCLE" style={{ height: '36px', width: 'auto', borderRadius: '4px' }} />
+          <span>THE DYNASTY CIRCLE</span>
         </Link>
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
           <PrintButton />
@@ -139,15 +139,35 @@ export default async function BilletPage({ params }: Props) {
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.75rem' }}>
               <img
                 src="/logo.png"
-                alt="THE DISNASTY CIRCLE"
+                alt="THE DYNASTY CIRCLE"
                 style={{ height: '75px', width: 'auto', borderRadius: '6px', filter: 'drop-shadow(0 0 12px rgba(212,175,55,0.4))' }}
               />
             </div>
             <p className={styles.eyebrow}>
-              THE DISNASTY CIRCLE • BILLET {ticketNumber} SUR {totalTickets}
+              THE DYNASTY CIRCLE • BILLET {ticketNumber} SUR {totalTickets}
             </p>
             <h1 className={styles.eventTitle}>{event.title}</h1>
             {event.subtitle && <p className={styles.eventSubtitle}>{event.subtitle}</p>}
+
+            {/* Alerte si réservation annulée */}
+            {r.status === 'CANCELLED' && (
+              <div style={{
+                margin: '1rem auto 0',
+                maxWidth: '520px',
+                padding: '0.85rem 1rem',
+                background: 'rgba(231, 76, 60, 0.25)',
+                border: '2px solid #e74c3c',
+                borderRadius: '8px',
+                color: '#ff6b6b',
+                fontWeight: 700,
+                fontSize: '0.95rem',
+              }}>
+                🛑 RÉSERVATION ANNULÉE — BILLET RÉVOQUÉ
+                <p style={{ fontSize: '0.8rem', fontWeight: 400, marginTop: '0.25rem', color: '#ffcccc' }}>
+                  Ce titre d&apos;accès a été désactivé par l&apos;organisation. L&apos;entrée sera strictement refusée à l&apos;accueil.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Details Row */}
@@ -218,16 +238,38 @@ export default async function BilletPage({ params }: Props) {
 
             {/* QR Code Section */}
             <div className={styles.qrSection}>
-              <p className={styles.qrLabel}>SCAN D&apos;ENTRÉE STRICTEMENT PERSONNEL</p>
-              <div className={styles.qrFrame}>
-                <img src={qrDataUrl} alt="QR Code d'accès" className={styles.qrImage} />
-              </div>
-              <p className={styles.ticketRef}>
-                REF : <span>{ticket.qrCode.slice(0, 13).toUpperCase()}</span>
-              </p>
-              <p className={styles.doorNotice}>
-                ⏰ <strong>Attention à la fermeture des portes :</strong> L&apos;accès et la validation des billets ferment 2h après le début de la soirée. Aucun retardataire ne sera admis.
-              </p>
+              {r.status === 'CANCELLED' ? (
+                <div style={{
+                  padding: '2.5rem 1rem',
+                  border: '2px dashed #e74c3c',
+                  borderRadius: '12px',
+                  background: 'rgba(231, 76, 60, 0.08)',
+                  textAlign: 'center',
+                  margin: '1rem auto',
+                  maxWidth: '320px'
+                }}>
+                  <span style={{ fontSize: '3rem', display: 'block', marginBottom: '0.5rem' }}>🚫</span>
+                  <p style={{ color: '#e74c3c', fontWeight: 800, fontSize: '1.2rem', letterSpacing: '0.05em', margin: 0 }}>
+                    ACCÈS INTERDIT
+                  </p>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem', marginTop: '0.4rem' }}>
+                    QR Code désactivé
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <p className={styles.qrLabel}>SCAN D&apos;ENTRÉE STRICTEMENT PERSONNEL</p>
+                  <div className={styles.qrFrame}>
+                    <img src={qrDataUrl} alt="QR Code d'accès" className={styles.qrImage} />
+                  </div>
+                  <p className={styles.ticketRef}>
+                    REF : <span>{ticket.qrCode.slice(0, 13).toUpperCase()}</span>
+                  </p>
+                  <p className={styles.doorNotice}>
+                    ⏰ <strong>Attention à la fermeture des portes :</strong> L&apos;accès et la validation des billets ferment 2h après le début de la soirée. Aucun retardataire ne sera admis.
+                  </p>
+                </>
+              )}
             </div>
           </div>
 
@@ -235,7 +277,7 @@ export default async function BilletPage({ params }: Props) {
           <div className={styles.ticketFooter}>
             <p>Ce billet est strictement personnel et non cessible. 1 scan unique à l&apos;entrée.</p>
             <p style={{ marginTop: '0.3rem', color: 'var(--gold)', fontSize: '0.75rem' }}>
-              THE DISNASTY CIRCLE • ÉLÉGANCE • PASSION • MYSTÈRE
+              THE DYNASTY CIRCLE • ÉLÉGANCE • PASSION • MYSTÈRE
             </p>
           </div>
         </div>

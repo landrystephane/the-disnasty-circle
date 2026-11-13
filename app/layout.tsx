@@ -8,12 +8,12 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  title: 'THE DISNASTY CIRCLE — Événements Exclusifs & Soirées Prestige',
-  description: 'Billetterie officielle des événements THE DISNASTY CIRCLE. Découvrez nos prochaines soirées et réservez vos accès VIP.',
-  keywords: 'THE DISNASTY CIRCLE, événements, soirées Paris, billetterie, prestige, gala',
+  title: 'THE DYNASTY CIRCLE — Événements Exclusifs & Soirées Prestige',
+  description: 'Billetterie officielle des événements THE DYNASTY CIRCLE. Découvrez nos prochaines soirées et réservez vos accès VIP.',
+  keywords: 'THE DYNASTY CIRCLE, événements, soirées Paris, billetterie, prestige, gala',
   openGraph: {
-    title: 'THE DISNASTY CIRCLE — Événements Exclusifs',
-    description: 'Billetterie officielle et programmation des soirées THE DISNASTY CIRCLE.',
+    title: 'THE DYNASTY CIRCLE — Événements Exclusifs',
+    description: 'Billetterie officielle et programmation des soirées THE DYNASTY CIRCLE.',
     type: 'website',
   },
 }

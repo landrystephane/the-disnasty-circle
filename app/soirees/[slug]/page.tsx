@@ -33,7 +33,7 @@ export async function generateMetadata({ params }: Props) {
   const event = await getEvent(slug)
   if (!event) return { title: 'Soirée introuvable' }
   return {
-    title: `${event.title} — THE DISNASTY CIRCLE`,
+    title: `${event.title} — THE DYNASTY CIRCLE`,
     description: event.description ?? `Réservez votre billet pour ${event.title}`,
   }
 }
@@ -56,8 +56,8 @@ export default async function EventPage({ params }: Props) {
       <nav className={styles.navbar}>
         <div className={`container ${styles.navInner}`}>
           <Link href="/" className={styles.navLogo}>
-            <img src="/logo.png" alt="THE DISNASTY CIRCLE" style={{ height: '42px', width: 'auto', borderRadius: '4px' }} />
-            <span className={styles.navLogoFull}>THE DISNASTY CIRCLE</span>
+            <img src="/logo.png" alt="THE DYNASTY CIRCLE" style={{ height: '42px', width: 'auto', borderRadius: '4px' }} />
+            <span className={styles.navLogoFull}>THE DYNASTY CIRCLE</span>
           </Link>
           <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'center' }}>
             <Link href="/#soirees" style={{ color: 'var(--text-muted)', fontSize: '0.85rem', letterSpacing: '0.05em' }}>
@@ -75,7 +75,7 @@ export default async function EventPage({ params }: Props) {
         )}
         <div className={styles.heroOverlay} />
         <div className={`container ${styles.heroContent}`}>
-          <p className={styles.heroEyebrow}>THE DISNASTY CIRCLE présente</p>
+          <p className={styles.heroEyebrow}>THE DYNASTY CIRCLE présente</p>
           <h1 className={`font-serif ${styles.heroTitle} text-shimmer`}>{event.title}</h1>
           {event.subtitle && (
             <p className={styles.heroSubtitle}>{event.subtitle}</p>

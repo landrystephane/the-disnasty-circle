@@ -40,9 +40,9 @@ function buildMultiTicketHtml(params: {
   <!-- Header avec Logo Officiel intégré (CID) -->
   <div style="background:linear-gradient(135deg,#0d0a02 0%,#1f1807 100%);border-bottom:2px solid #D4AF37;padding:2.5rem 1.5rem 1.75rem;text-align:center;">
     <div style="margin-bottom:12px;">
-      <img src="cid:disnasty-logo" alt="THE DISNASTY CIRCLE" width="105" height="105" style="display:block;margin:0 auto;border-radius:10px;border:1px solid rgba(212,175,55,0.4);" />
+      <img src="cid:dynasty-logo" alt="THE DYNASTY CIRCLE" width="105" height="105" style="display:block;margin:0 auto;border-radius:10px;border:1px solid rgba(212,175,55,0.4);" />
     </div>
-    <p style="margin:0;font-size:0.75rem;letter-spacing:0.25em;text-transform:uppercase;color:#D4AF37;font-weight:700;">THE DISNASTY CIRCLE • BILLETS OFFICIELS</p>
+    <p style="margin:0;font-size:0.75rem;letter-spacing:0.25em;text-transform:uppercase;color:#D4AF37;font-weight:700;">THE DYNASTY CIRCLE • BILLETS OFFICIELS</p>
     <h1 style="margin:0.5rem 0 0.25rem;font-size:2.2rem;color:#ffffff;letter-spacing:0.04em;">${params.eventTitle}</h1>
     ${params.eventSubtitle ? `<p style="margin:0;font-size:0.8rem;letter-spacing:0.18em;text-transform:uppercase;color:#c5a960;">${params.eventSubtitle}</p>` : ''}
   </div>
@@ -164,7 +164,7 @@ function buildMultiTicketHtml(params: {
   <div style="padding:1.5rem 2rem;text-align:center;background:#0a0a0a;">
     <p style="margin:0;font-size:0.75rem;color:#666;line-height:1.6;">
       Pour toute question, contactez notre équipe sur WhatsApp.<br>
-      © THE DISNASTY CIRCLE • ÉLÉGANCE • PASSION • MYSTÈRE
+      © THE DYNASTY CIRCLE • ÉLÉGANCE • PASSION • MYSTÈRE
     </p>
   </div>
 </div>
@@ -192,6 +192,12 @@ export async function POST(req: NextRequest) {
 
     if (!reservation) {
       return NextResponse.json({ error: 'Réservation introuvable.' }, { status: 404 })
+    }
+
+    if (reservation.status === 'CANCELLED') {
+      return NextResponse.json({
+        error: 'Cette réservation a été annulée et révoquée. Restaurez-la d\'abord avec le code administrateur avant de pouvoir envoyer des billets.',
+      }, { status: 400 })
     }
 
     const firstName   = overrides?.firstName   ?? reservation.firstName
@@ -281,7 +287,7 @@ export async function POST(req: NextRequest) {
         attachments.push({
           filename: 'logo.png',
           path: logoPath,
-          cid: 'disnasty-logo',
+          cid: 'dynasty-logo',
         })
       }
     } catch (logoErr) {
@@ -322,7 +328,7 @@ export async function POST(req: NextRequest) {
 
     if (transporter) {
       await transporter.sendMail({
-        from: `"THE DISNASTY CIRCLE" <${process.env.GMAIL_USER}>`,
+        from: `"THE DYNASTY CIRCLE" <${process.env.GMAIL_USER}>`,
         to: email,
         subject: `🎟️ Vos ${ticketCount} billet(s) officiels — ${reservation.event.title}`,
         html,
