@@ -43,6 +43,12 @@ export default function StaffReservations() {
   const [successMsg, setSuccessMsg] = useState<string | null>(null)
   const [infoModal, setInfoModal] = useState<ModalInfo | null>(null)
 
+  // Modale d'envoi groupé (Broadcast)
+  const [broadcastOpen, setBroadcastOpen] = useState(false)
+  const [broadcastSubject, setBroadcastSubject] = useState('')
+  const [broadcastMessage, setBroadcastMessage] = useState('')
+  const [broadcastSending, setBroadcastSending] = useState(false)
+
   const loadData = useCallback(async () => {
     setLoading(true)
     try {
@@ -157,6 +163,52 @@ export default function StaffReservations() {
     }
   }
 
+  async function handleSendBroadcast(e: React.FormEvent) {
+    e.preventDefault()
+    if (!broadcastSubject.trim() || !broadcastMessage.trim()) {
+      alert('Veuillez renseigner le sujet et le message.')
+      return
+    }
+
+    const confirmedCount = reservations.filter(r => r.status === 'CONFIRMED').length
+    const ok = window.confirm(
+      `📢 Confirmation d'envoi groupé\n\n` +
+      `Cet email sera envoyé à l'ensemble des ${confirmedCount} invité(s) dont la réservation est confirmée.\n\n` +
+      `Sujet : « ${broadcastSubject} »\n\n` +
+      `Voulez-vous lancer l'envoi maintenant ?`
+    )
+    if (!ok) return
+
+    setBroadcastSending(true)
+    try {
+      const res = await fetch('/api/tickets/broadcast', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          subject: broadcastSubject,
+          message: broadcastMessage,
+        }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        alert(
+          `✓ Envoi groupé terminé !\n\n` +
+          `• Destinataires : ${data.sentCount ?? data.count ?? 0}\n` +
+          (data.isMock ? `• Note : Mode simulation actif.` : `• Statut : Emails délivrés.`)
+        )
+        setBroadcastOpen(false)
+        setBroadcastSubject('')
+        setBroadcastMessage('')
+      } else {
+        alert(data.error || 'Erreur lors de l\'envoi groupé.')
+      }
+    } catch {
+      alert('Erreur réseau lors de l\'envoi.')
+    } finally {
+      setBroadcastSending(false)
+    }
+  }
+
   function getClientWhatsAppChatUrl(r: Reservation) {
     const rawPhone = r.phone || ''
     const cleanPhone = rawPhone.replace(/\D/g, '')
@@ -227,9 +279,18 @@ export default function StaffReservations() {
             {' '}• Équipe Staff : 🇧🇪 Belgique, 🇩🇪 Allemagne, 🇫🇷 France
           </p>
         </div>
-        <button onClick={loadData} className="btn btn-outline btn-sm">
-          🔄 Actualiser
-        </button>
+        <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
+          <button
+            onClick={() => setBroadcastOpen(true)}
+            className="btn btn-gold btn-sm"
+            title="Envoyer un email à l'ensemble des réservataires confirmés"
+          >
+            📢 Email Groupé ({activeReservations.length})
+          </button>
+          <button onClick={loadData} className="btn btn-outline btn-sm">
+            🔄 Actualiser
+          </button>
+        </div>
       </div>
 
       {successMsg && (
@@ -656,6 +717,101 @@ export default function StaffReservations() {
                 Fermer
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL EMAIL GROUPÉ (BROADCAST) */}
+      {broadcastOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.88)',
+          backdropFilter: 'blur(6px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '1rem',
+          zIndex: 9999,
+        }}>
+          <div style={{
+            background: '#121212',
+            border: '2px solid var(--gold)',
+            borderRadius: '16px',
+            maxWidth: '620px',
+            width: '100%',
+            padding: '2rem',
+            boxShadow: '0 20px 50px rgba(0,0,0,0.9)',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.5rem', color: 'var(--gold)', margin: 0 }}>
+                📢 Envoyer un Email Groupé
+              </h3>
+              <button
+                onClick={() => setBroadcastOpen(false)}
+                className="btn btn-outline btn-sm"
+                style={{ padding: '0.2rem 0.5rem' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '1.25rem', lineHeight: 1.5 }}>
+              Cet email officiel sera envoyé à tous les invités dont la réservation est confirmée.
+            </p>
+
+            <form onSubmit={handleSendBroadcast}>
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', color: 'var(--gold)', fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', marginBottom: '0.4rem' }}>
+                  Objet de l&apos;email *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ex : Rappel important & Informations d'accès — Bal Masqué"
+                  value={broadcastSubject}
+                  onChange={e => setBroadcastSubject(e.target.value)}
+                  className="form-input"
+                  style={{ width: '100%' }}
+                />
+              </div>
+
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label style={{ display: 'block', color: 'var(--gold)', fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', marginBottom: '0.4rem' }}>
+                  Corps du message officiel *
+                </label>
+                <textarea
+                  required
+                  rows={6}
+                  placeholder={`Chers invités,\n\nNous avons hâte de vous retrouver ce soir pour notre Bal Masqué.\n\nRappel du dress code : Tenue de soirée chic & Masque obligatoire...\n\nÀ très vite !`}
+                  value={broadcastMessage}
+                  onChange={e => setBroadcastMessage(e.target.value)}
+                  className="form-input"
+                  style={{ width: '100%', fontFamily: 'inherit', resize: 'vertical', lineHeight: 1.5 }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={() => setBroadcastOpen(false)}
+                  className="btn btn-outline"
+                  disabled={broadcastSending}
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-gold"
+                  disabled={broadcastSending || !broadcastSubject.trim() || !broadcastMessage.trim()}
+                >
+                  {broadcastSending ? 'Envoi en cours...' : '🚀 Envoyer à tous les invités'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

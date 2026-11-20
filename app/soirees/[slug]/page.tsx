@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import Countdown from '@/components/Countdown'
 import ReservationForm from '@/components/ReservationForm'
+import { STAFF_MEMBERS } from '@/lib/staffContacts'
 import styles from './event.module.css'
 import Link from 'next/link'
 
@@ -217,6 +218,69 @@ export default async function EventPage({ params }: Props) {
                   />
                 </>
               )}
+            </section>
+
+            {/* Assistance WhatsApp & Informations VIP */}
+            <section className={styles.card} style={{ marginTop: '1.25rem', borderColor: 'rgba(37, 211, 102, 0.3)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.6rem' }}>
+                <span style={{ fontSize: '1.4rem' }}>💬</span>
+                <h3 className="font-serif" style={{ color: 'var(--gold)', margin: 0, fontSize: '1.15rem' }}>
+                  Une question avant de réserver ?
+                </h3>
+              </div>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', lineHeight: 1.5, marginBottom: '1rem' }}>
+                Notre équipe est à votre disposition directe sur WhatsApp pour toute demande d&apos;information (dress code, accès, réservation de salon ou table VIP) :
+              </p>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                {STAFF_MEMBERS.map(member => {
+                  const defaultMsg = encodeURIComponent(
+                    `Bonjour THE DYNASTY CIRCLE,\n\nJe souhaite avoir des informations avant de réserver pour la soirée *${event.title}* (${formatDate(event.date)}).`
+                  )
+                  const waUrl = `https://api.whatsapp.com/send?phone=${member.cleanPhone}&text=${defaultMsg}`
+
+                  return (
+                    <a
+                      key={member.id}
+                      href={waUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn btn-outline"
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        borderColor: 'rgba(37, 211, 102, 0.35)',
+                        padding: '0.65rem 0.9rem',
+                        fontSize: '0.86rem',
+                        color: 'var(--text)',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{ fontSize: '1.2rem' }}>{member.flag}</span>
+                        <div>
+                          <strong style={{ display: 'block', color: 'var(--text)', fontSize: '0.86rem' }}>
+                            {member.country}
+                          </strong>
+                          <span style={{ color: 'var(--gold)', fontSize: '0.78rem' }}>
+                            {member.display}
+                          </span>
+                        </div>
+                      </div>
+                      <span style={{
+                        color: '#25D366',
+                        fontSize: '0.8rem',
+                        fontWeight: 600,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.3rem',
+                      }}>
+                        📲 Écrire
+                      </span>
+                    </a>
+                  )
+                })}
+              </div>
             </section>
           </div>
         </div>

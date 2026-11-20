@@ -17,6 +17,47 @@ type ScanResult = {
   wantsMask?: boolean
   reason?: string
   usedAt?: string
+  stats?: {
+    present: number
+    remaining: number
+    total: number
+    rate: number
+  }
+}
+
+interface AttendanceStats {
+  present: number
+  remaining: number
+  total: number
+  rate: number
+}
+
+function playAudioTone(type: 'success' | 'error') {
+  try {
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext
+    if (!AudioContextClass) return
+    const ctx = new AudioContextClass()
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+    osc.connect(gain)
+    gain.connect(ctx.destination)
+
+    if (type === 'success') {
+      osc.type = 'sine'
+      osc.frequency.setValueAtTime(880, ctx.currentTime) // Note A5 joyeuse
+      gain.gain.setValueAtTime(0.25, ctx.currentTime)
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.22)
+      osc.start()
+      osc.stop(ctx.currentTime + 0.22)
+    } else {
+      osc.type = 'sawtooth'
+      osc.frequency.setValueAtTime(220, ctx.currentTime) // Buzz grave
+      gain.gain.setValueAtTime(0.3, ctx.currentTime)
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4)
+      osc.start()
+      osc.stop(ctx.currentTime + 0.4)
+    }
+  } catch {}
 }
 
 export default function ScannerPage() {
@@ -25,11 +66,33 @@ export default function ScannerPage() {
   const [manualCode, setManualCode]   = useState('')
   const [cameraError, setCameraError] = useState('')
   const [scanStatus, setScanStatus]   = useState('')
+  const [attendance, setAttendance]   = useState<AttendanceStats>({
+    present: 0,
+    remaining: 0,
+    total: 0,
+    rate: 0,
+  })
 
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const animFrameRef = useRef<number | null>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
+
+  const fetchAttendance = useCallback(async () => {
+    try {
+      const res = await fetch('/api/scan')
+      const data = await res.json()
+      if (data && typeof data.total === 'number') {
+        setAttendance(data)
+      }
+    } catch (err) {
+      console.warn('Attendance load error:', err)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchAttendance()
+  }, [fetchAttendance])
 
   const stopCamera = useCallback(() => {
     if (animFrameRef.current) {
@@ -64,7 +127,20 @@ export default function ScannerPage() {
       })
       const data = await res.json()
       setResult(data)
+
+      if (data.valid) {
+        playAudioTone('success')
+      } else {
+        playAudioTone('error')
+      }
+
+      if (data.stats) {
+        setAttendance(data.stats)
+      } else {
+        fetchAttendance()
+      }
     } catch {
+      playAudioTone('error')
       setResult({ valid: false, reason: 'Erreur réseau lors de la validation du billet.' })
     }
   }
@@ -221,8 +297,71 @@ export default function ScannerPage() {
       <div className={styles.page}>
         <div className={styles.inner}>
           <div className={styles.header}>
-            <h1 className={`font-serif ${styles.title}`}>Scanner QR</h1>
-            <p className={styles.subtitle}>Scannez le billet avec la caméra ou importez une photo</p>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <div>
+                <h1 className={`font-serif ${styles.title}`} style={{ margin: 0 }}>Scanner QR</h1>
+                <p className={styles.subtitle} style={{ margin: '0.2rem 0 0' }}>Contrôle d&apos;accès en direct • THE DYNASTY CIRCLE</p>
+              </div>
+              <button
+                onClick={fetchAttendance}
+                className="btn btn-outline btn-sm"
+                title="Actualiser la jauge d'invités"
+                style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem' }}
+              >
+                🔄 Jauge
+              </button>
+            </div>
+          </div>
+
+          {/* JAUGE D'AFFLUENCE EN DIRECT */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: '0.6rem',
+            marginBottom: '1.25rem',
+            textAlign: 'center',
+          }}>
+            <div style={{
+              background: 'rgba(46, 204, 113, 0.12)',
+              border: '1px solid rgba(46, 204, 113, 0.35)',
+              borderRadius: '12px',
+              padding: '0.65rem 0.4rem',
+            }}>
+              <span style={{ fontSize: '1.5rem', fontWeight: 800, color: '#2ecc71', display: 'block', lineHeight: 1.2 }}>
+                {attendance.present}
+              </span>
+              <span style={{ fontSize: '0.72rem', color: '#2ecc71', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700 }}>
+                🟢 Présents
+              </span>
+            </div>
+
+            <div style={{
+              background: 'rgba(212, 175, 55, 0.1)',
+              border: '1px solid rgba(212, 175, 55, 0.35)',
+              borderRadius: '12px',
+              padding: '0.65rem 0.4rem',
+            }}>
+              <span style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--gold)', display: 'block', lineHeight: 1.2 }}>
+                {attendance.remaining}
+              </span>
+              <span style={{ fontSize: '0.72rem', color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700 }}>
+                ⏳ En attente
+              </span>
+            </div>
+
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.05)',
+              border: '1px solid var(--border)',
+              borderRadius: '12px',
+              padding: '0.65rem 0.4rem',
+            }}>
+              <span style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text)', display: 'block', lineHeight: 1.2 }}>
+                {attendance.total}
+              </span>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>
+                👥 Total ({attendance.rate}%)
+              </span>
+            </div>
           </div>
 
           {/* Result */}

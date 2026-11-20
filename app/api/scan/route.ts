@@ -1,10 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
-// POST /api/scan — scan a QR code at the entrance
+// GET /api/scan — récupérer les statistiques d'affluence en direct
+export async function GET() {
+  try {
+    const [total, present] = await Promise.all([
+      prisma.ticket.count({
+        where: {
+          reservation: { status: { not: 'CANCELLED' } },
+        },
+      }),
+      prisma.ticket.count({
+        where: {
+          reservation: { status: { not: 'CANCELLED' } },
+          isUsed: true,
+        },
+      }),
+    ])
+
+    return NextResponse.json({
+      present,
+      remaining: Math.max(0, total - present),
+      total,
+      rate: total > 0 ? Math.round((present / total) * 100) : 0,
+    })
+  } catch (err) {
+    console.error('Scan stats error:', err)
+    return NextResponse.json({ present: 0, remaining: 0, total: 0, rate: 0 }, { status: 500 })
+  }
+}
+
+// POST /api/scan — scanner un code QR à l'accueil
 export async function POST(req: NextRequest) {
   try {
-    const { qrCode, operatorName } = await req.json()
+    const body = await req.json()
+    const { qrCode, operatorName, forceAllow } = body
 
     if (!qrCode || typeof qrCode !== 'string') {
       return NextResponse.json({ valid: false, reason: 'QR code manquant.' }, { status: 400 })
@@ -20,7 +50,7 @@ export async function POST(req: NextRequest) {
       include: {
         reservation: {
           include: {
-            event: { select: { title: true, date: true, timeStart: true, location: true } },
+            event: { select: { id: true, title: true, date: true, timeStart: true, location: true } },
             phase: { select: { name: true } },
           },
         },
@@ -57,31 +87,45 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    // Règle stricte anti-fraude : Billet valable jusqu'à 2h après le début de la soirée
-    const { forceAllow } = await req.json().catch(() => ({}))
+    // Validité temporelle : Autorise l'accès toute la nuit (jusqu'à 8h après le début de la soirée, ex: 04h-06h du matin)
     const eventDate = new Date(ticket.reservation.event.date)
-    const cutoffTime = new Date(eventDate.getTime() + 2 * 60 * 60 * 1000) // 2 heures après
+    const cutoffTime = new Date(eventDate.getTime() + 8 * 60 * 60 * 1000) // 8 heures de validité
     const now = new Date()
 
     if (!forceAllow && now > cutoffTime) {
       return NextResponse.json({
         valid: false,
-        reason: `Billet expiré. L'accès était autorisé jusqu'à ${cutoffTime.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} (2h après le début de la soirée).`,
+        reason: `Billet expiré. L'accès pour cette soirée était autorisé jusqu'à ${cutoffTime.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}.`,
         status: 'EXPIRED',
         holder: `${ticket.reservation.firstName} ${ticket.reservation.lastName}`,
         event:  ticket.reservation.event.title,
       })
     }
 
-    // Mark as used
+    // Validation et enregistrement de l'entrée
     await prisma.ticket.update({
-      where: { qrCode },
+      where: { id: ticket.id },
       data:  {
         isUsed: true,
         usedAt: new Date(),
         usedBy: operatorName ?? 'Accueil Staff',
       },
     })
+
+    // Statistiques en direct mises à jour après ce scan
+    const [total, present] = await Promise.all([
+      prisma.ticket.count({
+        where: {
+          reservation: { status: { not: 'CANCELLED' } },
+        },
+      }),
+      prisma.ticket.count({
+        where: {
+          reservation: { status: { not: 'CANCELLED' } },
+          isUsed: true,
+        },
+      }),
+    ])
 
     const hasMask = Boolean((ticket as any).hasMask ?? ticket.reservation.wantsMask)
     const ticketNumber = (ticket as any).ticketNumber ?? 1
@@ -99,6 +143,12 @@ export async function POST(req: NextRequest) {
       maskInstruction: hasMask
         ? '🎭 MASQUE INCLUS : Remettre 1 masque à l\'invité !'
         : '❌ SANS MASQUE (L\'invité apporte son propre masque)',
+      stats: {
+        present,
+        remaining: Math.max(0, total - present),
+        total,
+        rate: total > 0 ? Math.round((present / total) * 100) : 0,
+      },
     })
   } catch (err) {
     console.error('Scan error:', err)

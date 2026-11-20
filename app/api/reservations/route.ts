@@ -51,6 +51,50 @@ export async function POST(req: NextRequest) {
       },
     })
 
+    // Notification email instantanée à l'équipe organisatrice
+    try {
+      const user = process.env.SMTP_USER || process.env.GMAIL_USER
+      const pass = process.env.SMTP_PASS || process.env.GMAIL_APP_PASSWORD
+      const alertRecipient = process.env.STAFF_ALERT_EMAIL || user
+
+      if (user && pass && !pass.includes('placeholder') && alertRecipient) {
+        const nodemailer = (await import('nodemailer')).default
+        const transporter = nodemailer.createTransport({
+          host: process.env.SMTP_HOST || 'smtp.gmail.com',
+          port: parseInt(process.env.SMTP_PORT || '465', 10),
+          secure: true,
+          auth: { user, pass },
+        })
+
+        transporter.sendMail({
+          from: `"THE DYNASTY CIRCLE — Système" <${user}>`,
+          to: alertRecipient,
+          subject: `✨ Nouvelle réservation : ${firstName} ${lastName} (${count} place(s))`,
+          html: `
+            <div style="font-family:sans-serif;background:#0d0d0d;color:#f5f0e8;padding:24px;border-radius:8px;border:1px solid #D4AF37;">
+              <h2 style="color:#D4AF37;margin-top:0;">🎉 Nouvelle Réservation Reçue !</h2>
+              <p>Une personne vient de réserver sur le site <strong>THE DYNASTY CIRCLE</strong> :</p>
+              <ul style="line-height:1.8;">
+                <li><strong>Client :</strong> ${firstName} ${lastName}</li>
+                <li><strong>Email :</strong> ${email}</li>
+                <li><strong>Téléphone :</strong> ${phone || 'Non renseigné'}</li>
+                <li><strong>Places :</strong> ${count} billet(s)</li>
+                <li><strong>Total :</strong> ${totalAmount ? `${totalAmount}€` : 'Non spécifié'}</li>
+                <li><strong>Événement :</strong> ${event.title}</li>
+              </ul>
+              <p style="margin-top:20px;">
+                <a href="${process.env.NEXTAUTH_URL || 'https://the-disnasty-circle.vercel.app'}/staff/reservations" style="background:#D4AF37;color:#000;padding:10px 18px;border-radius:6px;text-decoration:none;font-weight:bold;">
+                  Voir dans l'espace Staff →
+                </a>
+              </p>
+            </div>
+          `,
+        }).catch(mailErr => console.warn('Staff notification mail skipped:', mailErr))
+      }
+    } catch (notifErr) {
+      console.warn('Notification error (ignored):', notifErr)
+    }
+
     return NextResponse.json({ success: true, reservationId: reservation.id })
   } catch (err: any) {
     console.error('Reservation error:', err)
