@@ -11,10 +11,16 @@ export const metadata: Metadata = {
   title: 'THE DISNASTY CIRCLE — Événements Exclusifs & Soirées Prestige',
   description: 'Billetterie officielle des événements THE DISNASTY CIRCLE. Découvrez nos prochaines soirées et réservez vos accès VIP.',
   keywords: 'THE DISNASTY CIRCLE, événements, soirées Paris, billetterie, prestige, gala',
+  icons: {
+    icon: '/logo.png',
+    shortcut: '/logo.png',
+    apple: '/logo.png',
+  },
   openGraph: {
     title: 'THE DISNASTY CIRCLE — Événements Exclusifs',
     description: 'Billetterie officielle et programmation des soirées THE DISNASTY CIRCLE.',
     type: 'website',
+    images: [{ url: '/logo.png' }],
   },
 }
 
