@@ -97,8 +97,7 @@ export default function ReservationForm({
   const [error, setError] = useState('')
   const [bookingType, setBookingType] = useState<'INDIVIDUAL' | 'TABLE'>('INDIVIDUAL')
   const [tableSeats, setTableSeats] = useState(6)
-  const [wantsTableMasks, setWantsTableMasks] = useState(true)
-  const [tableMasks, setTableMasks] = useState(6)
+  const [tableMasks, setTableMasks] = useState(2) // Default to 2 or 0, freely adjustable
 
   const [selectedCountryCode, setSelectedCountryCode] = useState('+32') // Default to Belgique or France
   const [phoneRaw, setPhoneRaw] = useState('')
@@ -157,8 +156,8 @@ export default function ReservationForm({
         email: form.email,
         phone: fullPhone,
         ticketCount: tableSeats,
-        wantsMask: wantsTableMasks,
-        maskCount: wantsTableMasks ? tableMasks : 0,
+        wantsMask: tableMasks > 0,
+        maskCount: tableMasks,
         isTable: true,
         tableName: `Table VIP (${tableSeats} pers.)`,
         message: form.message,
@@ -190,7 +189,7 @@ export default function ReservationForm({
           `• Date : *${eventDate}*\n` +
           `• Lieu : *${eventLocation}*\n` +
           `• Nombre d'invites prevu : *${tableSeats} personnes*\n` +
-          `• Masques sur place : *${wantsTableMasks ? `${tableMasks} masque(s)` : 'Non / Apportent leurs masques'}*\n` +
+          `• Masques sur place : *${tableMasks > 0 ? `${tableMasks} masque(s) pour la table` : 'Aucun (les invites viennent avec leurs masques)'}*\n` +
           (form.message ? `• Demande particuliere : ${form.message}\n` : '') +
           `• Mon email : *${form.email}*\n` +
           `• Mon telephone : *${fullPhone}*\n\n` +
@@ -538,7 +537,7 @@ export default function ReservationForm({
               onChange={e => {
                 const val = parseInt(e.target.value)
                 setTableSeats(val)
-                if (wantsTableMasks) setTableMasks(val)
+                setTableMasks(m => Math.min(m, val))
               }}
               style={{ background: '#141414', color: '#fff' }}
             >
@@ -552,18 +551,47 @@ export default function ReservationForm({
             background: 'rgba(212, 175, 55, 0.08)',
             border: '1px solid var(--gold-border)',
             borderRadius: '10px',
-            padding: '0.85rem 1rem',
-            marginTop: '0.75rem',
+            padding: '1rem 1.25rem',
+            marginTop: '0.85rem',
           }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', cursor: 'pointer', fontSize: '0.88rem', color: '#fff' }}>
-              <input
-                type="checkbox"
-                checked={wantsTableMasks}
-                onChange={e => setWantsTableMasks(e.target.checked)}
-                style={{ width: '18px', height: '18px', accentColor: 'var(--gold)' }}
-              />
-              <span>🎭 <strong>Prévoir des masques sur place</strong> ({tableSeats} masques pour votre table)</span>
-            </label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+              <div>
+                <p style={{ fontWeight: 600, color: 'var(--gold)', margin: 0, fontSize: '0.95rem' }}>
+                  🎭 Masques vénitiens sur place pour votre table
+                </p>
+                <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: '0.2rem 0 0' }}>
+                  Combien de masques à prévoir pour vos {tableSeats} invités ?
+                </p>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <button
+                  type="button"
+                  className="btn btn-outline btn-sm"
+                  onClick={() => setTableMasks(m => Math.max(0, m - 1))}
+                  disabled={tableMasks <= 0}
+                  style={{ width: '36px', height: '36px', padding: 0, fontSize: '1.2rem', lineHeight: '1' }}
+                >
+                  −
+                </button>
+                <span style={{ minWidth: '36px', textAlign: 'center', fontWeight: 700, fontSize: '1.2rem', color: tableMasks > 0 ? 'var(--gold)' : 'var(--text-muted)' }}>
+                  {tableMasks}
+                </span>
+                <button
+                  type="button"
+                  className="btn btn-outline btn-sm"
+                  onClick={() => setTableMasks(m => Math.min(tableSeats, m + 1))}
+                  disabled={tableMasks >= tableSeats}
+                  style={{ width: '36px', height: '36px', padding: 0, fontSize: '1.2rem', lineHeight: '1' }}
+                >
+                  +
+                </button>
+              </div>
+            </div>
+            <p style={{ fontSize: '0.78rem', color: tableMasks > 0 ? 'var(--gold)' : 'var(--text-dim)', marginTop: '0.6rem', marginBottom: 0 }}>
+              {tableMasks === 0
+                ? '❌ Aucun masque sur place (vos invités viennent avec leurs propres masques)'
+                : `✓ ${tableMasks} masque${tableMasks > 1 ? 's' : ''} fourni${tableMasks > 1 ? 's' : ''} sur place pour votre table de ${tableSeats} personne${tableSeats > 1 ? 's' : ''}`}
+            </p>
           </div>
         </div>
       )}
