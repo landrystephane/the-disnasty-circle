@@ -130,6 +130,8 @@ export async function POST(req: NextRequest) {
     const hasMask = Boolean((ticket as any).hasMask ?? ticket.reservation.wantsMask)
     const ticketNumber = (ticket as any).ticketNumber ?? 1
     const totalTickets = ticket.reservation.ticketCount
+    const isTable = Boolean((ticket as any).isTableTicket || (ticket as any).tableName || ticket.reservation.isTable)
+    const tableName = (ticket as any).tableName || ticket.reservation.tableName || null
 
     return NextResponse.json({
       valid:     true,
@@ -140,6 +142,8 @@ export async function POST(req: NextRequest) {
       ticketNumber,
       totalTickets,
       hasMask,
+      isTable,
+      tableName,
       maskInstruction: hasMask
         ? '🎭 MASQUE INCLUS : Remettre 1 masque à l\'invité !'
         : '❌ SANS MASQUE (L\'invité apporte son propre masque)',

@@ -17,6 +17,8 @@ interface Reservation {
   totalAmount: number | null
   createdAt: string
   notes?: string | null
+  isTable?: boolean
+  tableName?: string | null
   event: { title: string; slug: string; whatsappNumber: string }
   phase: { name: string; price: number } | null
   tickets: { id: string; qrCode: string; isUsed: boolean; sentAt: string | null }[]
@@ -36,12 +38,31 @@ interface ModalInfo {
 export default function StaffReservations() {
   const [reservations, setReservations] = useState<Reservation[]>([])
   const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState<'ALL' | 'PENDING' | 'CONFIRMED' | 'CANCELLED'>('ALL')
+  const [filter, setFilter] = useState<'ALL' | 'TABLES' | 'PENDING' | 'CONFIRMED' | 'CANCELLED'>('ALL')
   const [countryFilter, setCountryFilter] = useState<'ALL' | 'BE' | 'DE' | 'FR' | 'OTHER'>('ALL')
   const [search, setSearch] = useState('')
   const [sendingId, setSendingId] = useState<string | null>(null)
   const [successMsg, setSuccessMsg] = useState<string | null>(null)
   const [infoModal, setInfoModal] = useState<ModalInfo | null>(null)
+
+  // Modale Table VIP
+  const [tableModal, setTableModal] = useState<{
+    open: boolean
+    reservation: Reservation | null
+    tableName: string
+    totalAmount: string
+    ticketCount: string
+    maskCount: string
+    isSaving: boolean
+  }>({
+    open: false,
+    reservation: null,
+    tableName: '',
+    totalAmount: '',
+    ticketCount: '4',
+    maskCount: '0',
+    isSaving: false,
+  })
 
   // Modale d'envoi groupé (Broadcast)
   const [broadcastOpen, setBroadcastOpen] = useState(false)
@@ -104,12 +125,59 @@ export default function StaffReservations() {
     if (!pin) return
 
     const normalizedPin = pin.trim().toUpperCase()
-    if (normalizedPin !== 'DYNASTY2026' && normalizedPin !== 'TDC2026') {
+    if (normalizedPin !== 'DISNASTY2026' && normalizedPin !== 'DYNASTY2026' && normalizedPin !== 'TDC2026') {
       alert('❌ Code PIN incorrect. Action refusée.')
       return
     }
 
     updateStatus(id, 'CONFIRMED')
+  }
+
+  function openTableModal(r: Reservation) {
+    setTableModal({
+      open: true,
+      reservation: r,
+      tableName: r.tableName && r.tableName !== 'Table VIP (En attente)' ? r.tableName : 'Table Carré Or #1',
+      totalAmount: r.totalAmount != null ? String(r.totalAmount) : '',
+      ticketCount: String(r.ticketCount || 4),
+      maskCount: String(r.maskCount || 0),
+      isSaving: false,
+    })
+  }
+
+  async function handleSaveTableModal(e: React.FormEvent) {
+    e.preventDefault()
+    if (!tableModal.reservation) return
+
+    setTableModal(prev => ({ ...prev, isSaving: true }))
+    try {
+      const res = await fetch('/api/reservations', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: tableModal.reservation.id,
+          status: 'CONFIRMED',
+          isTable: true,
+          tableName: tableModal.tableName.trim() || 'Table VIP',
+          totalAmount: parseFloat(tableModal.totalAmount) || 0,
+          ticketCount: parseInt(tableModal.ticketCount, 10) || 1,
+          maskCount: parseInt(tableModal.maskCount, 10) || 0,
+        }),
+      })
+
+      if (res.ok) {
+        await loadData()
+        setSuccessMsg(`✓ Table VIP « ${tableModal.tableName} » configurée et confirmée !`)
+        setTimeout(() => setSuccessMsg(null), 4000)
+        setTableModal(prev => ({ ...prev, open: false }))
+      } else {
+        alert('Erreur lors de la validation de la table.')
+      }
+    } catch {
+      alert('Erreur réseau lors de la validation de la table.')
+    } finally {
+      setTableModal(prev => ({ ...prev, isSaving: false }))
+    }
   }
 
   async function sendTicket(reservationId: string, alreadySentDate?: string | null) {
@@ -214,7 +282,7 @@ export default function StaffReservations() {
     const cleanPhone = rawPhone.replace(/\D/g, '')
     if (!cleanPhone) return null
     const msg = encodeURIComponent(
-      `Bonjour ${r.firstName} ${r.lastName},\n\nC'est l'équipe THE DYNASTY CIRCLE concernant votre réservation pour *${r.event.title}* (${r.ticketCount} place(s) - Total: ${r.totalAmount ?? '...'}€).\n\nVotre réservation est bien enregistrée !`
+      `Bonjour ${r.firstName} ${r.lastName},\n\nC'est l'équipe THE DISNASTY CIRCLE concernant votre réservation pour *${r.event.title}* (${r.ticketCount} place(s) - Total: ${r.totalAmount ?? '...'}€).\n\nVotre réservation est bien enregistrée !`
     )
     return `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${msg}`
   }
@@ -225,7 +293,7 @@ export default function StaffReservations() {
     const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'
     const ticketUrl = `${origin}/billet/${qrCode}`
     const msg = encodeURIComponent(
-      `Bonjour ${r.firstName} ! Voici votre e-billet officiel THE DYNASTY CIRCLE pour *${r.event.title}* :\n\n🔗 ${ticketUrl}\n\nVeuillez présenter ce QR code à l'accueil lors de votre arrivée (validité : 1 entrée unique). À très bientôt !`
+      `Bonjour ${r.firstName} ! Voici votre e-billet officiel THE DISNASTY CIRCLE pour *${r.event.title}* :\n\n🔗 ${ticketUrl}\n\nVeuillez présenter ce QR code à l'accueil lors de votre arrivée (validité : 1 entrée unique). À très bientôt !`
     )
     return cleanPhone
       ? `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${msg}`
@@ -242,7 +310,9 @@ export default function StaffReservations() {
   const otherCount = activeReservations.length - (beCount + deCount + frCount)
 
   const filtered = reservations.filter(r => {
-    const matchFilter = filter === 'ALL' || r.status === filter
+    const matchFilter =
+      filter === 'ALL' ||
+      (filter === 'TABLES' ? (r.isTable || Boolean(r.tableName) || r.status === 'TABLE_PENDING') : r.status === filter)
     const cleanPhone = (r.phone || '').replace(/\D/g, '')
     const matchCountry =
       countryFilter === 'ALL' ||
@@ -280,6 +350,13 @@ export default function StaffReservations() {
           </p>
         </div>
         <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
+          <Link
+            href="/staff/liste-invites"
+            className="btn btn-outline btn-sm"
+            title="Consulter et imprimer la liste d'émargement et plan de tables A4"
+          >
+            🖨️ Liste Émargement & Tables
+          </Link>
           <button
             onClick={() => setBroadcastOpen(true)}
             className="btn btn-gold btn-sm"
@@ -366,13 +443,14 @@ export default function StaffReservations() {
         justifyContent: 'space-between'
       }}>
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-          {(['ALL', 'PENDING', 'CONFIRMED', 'CANCELLED'] as const).map(tab => (
+          {(['ALL', 'TABLES', 'PENDING', 'CONFIRMED', 'CANCELLED'] as const).map(tab => (
             <button
               key={tab}
               onClick={() => setFilter(tab)}
               className={`btn btn-sm ${filter === tab ? 'btn-gold' : 'btn-outline'}`}
             >
               {tab === 'ALL' && 'Toutes'}
+              {tab === 'TABLES' && '🍾 Tables VIP'}
               {tab === 'PENDING' && '⏳ En attente'}
               {tab === 'CONFIRMED' && '✅ Confirmées'}
               {tab === 'CANCELLED' && '❌ Annulées'}
@@ -486,6 +564,21 @@ export default function StaffReservations() {
                         }}>
                           {r.ticketCount}x {r.phase?.name ?? 'Standard'}
                         </div>
+                        {(r.isTable || r.tableName || r.status === 'TABLE_PENDING') && (
+                          <div style={{
+                            margin: '0.25rem 0',
+                            padding: '0.2rem 0.5rem',
+                            borderRadius: '4px',
+                            background: 'rgba(212, 175, 55, 0.15)',
+                            border: '1px solid rgba(212, 175, 55, 0.4)',
+                            color: 'var(--gold)',
+                            fontSize: '0.78rem',
+                            fontWeight: 700,
+                            display: 'inline-block'
+                          }}>
+                            🍾 {r.tableName || 'Table VIP'}
+                          </div>
+                        )}
                         {isCancelled ? (
                           <div style={{ color: '#e74c3c', fontSize: '0.75rem', fontWeight: 600, marginTop: '0.25rem' }}>
                             🛑 Non comptabilisé (Annulé)
@@ -616,6 +709,18 @@ export default function StaffReservations() {
                                   📲 Billet WA
                                 </a>
                               </>
+                            )}
+
+                            {/* Configurer la Table VIP si applicable */}
+                            {(r.isTable || r.tableName || r.status === 'TABLE_PENDING') && (
+                              <button
+                                onClick={() => openTableModal(r)}
+                                className="btn btn-outline btn-sm"
+                                style={{ color: 'var(--gold)', borderColor: 'var(--gold)', padding: '0.35rem 0.6rem' }}
+                                title="Régler le nom de table, le montant convenu et les places"
+                              >
+                                🍾 Table VIP
+                              </button>
                             )}
 
                             {/* Générer / envoyer email */}
@@ -809,6 +914,138 @@ export default function StaffReservations() {
                   disabled={broadcastSending || !broadcastSubject.trim() || !broadcastMessage.trim()}
                 >
                   {broadcastSending ? 'Envoi en cours...' : '🚀 Envoyer à tous les invités'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* MODAL CONFIGURATION TABLE VIP */}
+      {tableModal.open && tableModal.reservation && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.88)',
+          backdropFilter: 'blur(6px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '1rem',
+          zIndex: 9999,
+        }}>
+          <div style={{
+            background: '#121212',
+            border: '2px solid var(--gold)',
+            borderRadius: '16px',
+            maxWidth: '540px',
+            width: '100%',
+            padding: '2rem',
+            boxShadow: '0 20px 50px rgba(0,0,0,0.9)',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.4rem', color: 'var(--gold)', margin: 0 }}>
+                🍾 Configuration Table VIP
+              </h3>
+              <button
+                onClick={() => setTableModal(prev => ({ ...prev, open: false }))}
+                className="btn btn-outline btn-sm"
+                style={{ padding: '0.2rem 0.5rem' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '1.25rem' }}>
+              Client : <strong style={{ color: '#fff' }}>{tableModal.reservation.firstName} {tableModal.reservation.lastName}</strong>
+              {tableModal.reservation.phone && ` • 📱 ${tableModal.reservation.phone}`}
+            </p>
+
+            <form onSubmit={handleSaveTableModal}>
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', color: 'var(--gold)', fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', marginBottom: '0.4rem' }}>
+                  Nom ou Emplacement de la Table *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ex : Table Carré Or #1, Salon VIP Prestige..."
+                  value={tableModal.tableName}
+                  onChange={e => setTableModal(prev => ({ ...prev, tableName: e.target.value }))}
+                  className="form-input"
+                  style={{ width: '100%' }}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                <div>
+                  <label style={{ display: 'block', color: 'var(--gold)', fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', marginBottom: '0.4rem' }}>
+                    Montant convenu (€) *
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    required
+                    placeholder="Ex : 500"
+                    value={tableModal.totalAmount}
+                    onChange={e => setTableModal(prev => ({ ...prev, totalAmount: e.target.value }))}
+                    className="form-input"
+                    style={{ width: '100%' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', color: 'var(--gold)', fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', marginBottom: '0.4rem' }}>
+                    Nombre de places (invités) *
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="30"
+                    required
+                    value={tableModal.ticketCount}
+                    onChange={e => setTableModal(prev => ({ ...prev, ticketCount: e.target.value }))}
+                    className="form-input"
+                    style={{ width: '100%' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label style={{ display: 'block', color: 'var(--gold)', fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', marginBottom: '0.4rem' }}>
+                  Nombre de masques à fournir sur place
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  max="30"
+                  value={tableModal.maskCount}
+                  onChange={e => setTableModal(prev => ({ ...prev, maskCount: e.target.value }))}
+                  className="form-input"
+                  style={{ width: '100%' }}
+                />
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: '0.2rem', display: 'block' }}>
+                  Les masques seront indiqués sur chaque billet scanné pour les invités de la table.
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={() => setTableModal(prev => ({ ...prev, open: false }))}
+                  className="btn btn-outline"
+                  disabled={tableModal.isSaving}
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-gold"
+                  disabled={tableModal.isSaving}
+                >
+                  {tableModal.isSaving ? 'Enregistrement...' : '🍾 Valider & Enregistrer la Table'}
                 </button>
               </div>
             </form>

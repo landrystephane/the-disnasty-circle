@@ -105,7 +105,7 @@ export default function StaffDashboard() {
   function getWhatsAppUrl(reservation: Reservation) {
     const phone = reservation.event.whatsappNumber.replace(/\D/g, '')
     const msg = encodeURIComponent(
-      `Bonjour ${reservation.firstName} ${reservation.lastName} 👋,\n\nNous avons bien reçu votre demande de réservation pour *${reservation.event.title}*.\n\nPour confirmer votre place, merci de procéder au virement de *${reservation.totalAmount ?? '...'}€*.\n\nUne fois le paiement reçu, nous vous enverrons votre billet par email dans les plus brefs délais. 🎭✨\n\nTHE DYNASTY CIRCLE`
+      `Bonjour ${reservation.firstName} ${reservation.lastName} 👋,\n\nNous avons bien reçu votre demande de réservation pour *${reservation.event.title}*.\n\nPour confirmer votre place, merci de procéder au virement de *${reservation.totalAmount ?? '...'}€*.\n\nUne fois le paiement reçu, nous vous enverrons votre billet par email dans les plus brefs délais. 🎭✨\n\nTHE DISNASTY CIRCLE`
     )
     return `https://wa.me/${phone}?text=${msg}`
   }

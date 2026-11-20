@@ -38,12 +38,12 @@ export default function StaffLogin() {
       <div className={styles.glow} />
       <div className={styles.card}>
         <div className={styles.logo}>
-          <img src="/logo.png" alt="THE DYNASTY CIRCLE" style={{ height: '76px', width: 'auto', marginBottom: '0.75rem', borderRadius: '6px' }} />
+          <img src="/logo.png" alt="THE DISNASTY CIRCLE" style={{ height: '76px', width: 'auto', marginBottom: '0.75rem', borderRadius: '6px' }} />
           <p className={styles.logoSub}>STAFF ACCESS</p>
         </div>
 
         <h1 className={`font-serif ${styles.title}`}>Connexion</h1>
-        <p className={styles.subtitle}>Accès réservé au personnel THE DYNASTY CIRCLE</p>
+        <p className={styles.subtitle}>Accès réservé au personnel THE DISNASTY CIRCLE</p>
 
         <form onSubmit={handleSubmit} className={styles.form}>
           <div className="form-group">
@@ -51,7 +51,7 @@ export default function StaffLogin() {
             <input
               type="email"
               className="form-input"
-              placeholder="admin@dynastycircle.com"
+              placeholder="admin@disnastycircle.com"
               value={form.email}
               onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
               required

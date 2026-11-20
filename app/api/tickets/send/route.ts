@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import nodemailer from 'nodemailer'
+import { sendEmail } from '@/lib/email'
 import QRCode from 'qrcode'
 import { v4 as uuidv4 } from 'uuid'
 import path from 'path'
@@ -40,9 +40,9 @@ function buildMultiTicketHtml(params: {
   <!-- Header avec Logo Officiel intégré (CID) -->
   <div style="background:linear-gradient(135deg,#0d0a02 0%,#1f1807 100%);border-bottom:2px solid #D4AF37;padding:2.5rem 1.5rem 1.75rem;text-align:center;">
     <div style="margin-bottom:12px;">
-      <img src="cid:dynasty-logo" alt="THE DYNASTY CIRCLE" width="105" height="105" style="display:block;margin:0 auto;border-radius:10px;border:1px solid rgba(212,175,55,0.4);" />
+      <img src="cid:dynasty-logo" alt="THE DISNASTY CIRCLE" width="105" height="105" style="display:block;margin:0 auto;border-radius:10px;border:1px solid rgba(212,175,55,0.4);" />
     </div>
-    <p style="margin:0;font-size:0.75rem;letter-spacing:0.25em;text-transform:uppercase;color:#D4AF37;font-weight:700;">THE DYNASTY CIRCLE • BILLETS OFFICIELS</p>
+    <p style="margin:0;font-size:0.75rem;letter-spacing:0.25em;text-transform:uppercase;color:#D4AF37;font-weight:700;">THE DISNASTY CIRCLE • BILLETS OFFICIELS</p>
     <h1 style="margin:0.5rem 0 0.25rem;font-size:2.2rem;color:#ffffff;letter-spacing:0.04em;">${params.eventTitle}</h1>
     ${params.eventSubtitle ? `<p style="margin:0;font-size:0.8rem;letter-spacing:0.18em;text-transform:uppercase;color:#c5a960;">${params.eventSubtitle}</p>` : ''}
   </div>
@@ -164,7 +164,7 @@ function buildMultiTicketHtml(params: {
   <div style="padding:1.5rem 2rem;text-align:center;background:#0a0a0a;">
     <p style="margin:0;font-size:0.75rem;color:#666;line-height:1.6;">
       Pour toute question, contactez notre équipe sur WhatsApp.<br>
-      © THE DYNASTY CIRCLE • ÉLÉGANCE • PASSION • MYSTÈRE
+      © THE DISNASTY CIRCLE • ÉLÉGANCE • PASSION • MYSTÈRE
     </p>
   </div>
 </div>
@@ -219,6 +219,8 @@ export async function POST(req: NextRequest) {
 
     // Generate or update tickets: exactly ticketCount tickets
     const ticketsData: { qrCode: string; ticketNumber: number; hasMask: boolean }[] = []
+    const isTable = Boolean((reservation as any).isTable || (reservation as any).tableName)
+    const tableName = (reservation as any).tableName || (isTable ? 'Table VIP' : null)
 
     for (let i = 0; i < ticketCount; i++) {
       const existing = reservation.tickets[i]
@@ -231,6 +233,9 @@ export async function POST(req: NextRequest) {
           data: {
             ticketNumber,
             hasMask,
+            isTableTicket: isTable,
+            tableName,
+            sentAt: new Date(),
           },
         })
         ticketsData.push({
@@ -246,6 +251,9 @@ export async function POST(req: NextRequest) {
             qrCode,
             ticketNumber,
             hasMask,
+            isTableTicket: isTable,
+            tableName,
+            sentAt: new Date(),
           },
         })
         ticketsData.push({
@@ -256,28 +264,12 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const isMockEmail = !process.env.GMAIL_USER ||
-      process.env.GMAIL_USER.includes('votre.email') ||
-      !process.env.GMAIL_APP_PASSWORD ||
-      process.env.GMAIL_APP_PASSWORD.includes('votre-mot-de-passe')
-
-    let transporter: nodemailer.Transporter | null = null
-    if (!isMockEmail) {
-      transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-          user: process.env.GMAIL_USER,
-          pass: process.env.GMAIL_APP_PASSWORD,
-        },
-      })
-    }
-
-    const phaseName = reservation.phase?.name ?? 'Standard'
+    const phaseName = isTable ? `🍾 ${tableName || 'Table VIP'}` : (reservation.phase?.name ?? 'Standard')
     const eventDate = formatDate(reservation.event.date)
     const baseUrl = process.env.NEXTAUTH_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
 
     // Build CID attachments
-    const attachments: nodemailer.SendMailOptions['attachments'] = []
+    const attachments: any[] = []
 
     // Safely attach logo if present
     const logoPath = path.join(process.cwd(), 'public', 'logo.png')
@@ -287,7 +279,7 @@ export async function POST(req: NextRequest) {
         attachments.push({
           filename: 'logo.png',
           path: logoPath,
-          cid: 'dynasty-logo',
+          cid: 'disnasty-logo',
         })
       }
     } catch (logoErr) {
@@ -326,23 +318,16 @@ export async function POST(req: NextRequest) {
       baseUrl,
     })
 
-    if (transporter) {
-      await transporter.sendMail({
-        from: `"THE DYNASTY CIRCLE" <${process.env.GMAIL_USER}>`,
-        to: email,
-        subject: `🎟️ Vos ${ticketCount} billet(s) officiels — ${reservation.event.title}`,
-        html,
-        attachments,
-      })
+    const emailSubject = isTable
+      ? `🍾 Vos billets officiels pour ${tableName || 'votre Table VIP'} — ${reservation.event.title}`
+      : `🎟️ Vos ${ticketCount} billet(s) officiels — ${reservation.event.title} | THE DISNASTY CIRCLE`
 
-      // Mark all tickets as sent
-      for (const t of ticketsData) {
-        await prisma.ticket.update({
-          where: { qrCode: t.qrCode },
-          data:  { sentAt: new Date() },
-        })
-      }
-    }
+    const sendRes = await sendEmail({
+      to: email,
+      subject: emailSubject,
+      html,
+      attachments,
+    })
 
     return NextResponse.json({
       success: true,
@@ -351,7 +336,8 @@ export async function POST(req: NextRequest) {
       ticketUrl: `/billet/${ticketsData[0].qrCode}`,
       email,
       phone: (reservation as any).phone || null,
-      isMockEmail,
+      isMockEmail: sendRes.isMock ?? false,
+      provider: sendRes.provider,
     })
   } catch (err: any) {
     console.error('Send ticket error:', err)

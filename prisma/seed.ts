@@ -4,15 +4,15 @@ import bcrypt from 'bcryptjs'
 const prisma = new PrismaClient()
 
 async function main() {
-  console.log('🌱 Seeding THE DYNASTY CIRCLE database...')
+  console.log('🌱 Seeding THE DISNASTY CIRCLE database...')
 
   // Create admin user
-  const adminHash = await bcrypt.hash('DynastyAdmin2026!', 12)
+  const adminHash = await bcrypt.hash('DisnastyAdmin2026!', 12)
   const admin = await prisma.staffUser.upsert({
-    where:  { email: 'admin@dynastycircle.com' },
+    where:  { email: 'admin@disnastycircle.com' },
     update: {},
     create: {
-      email:        'admin@dynastycircle.com',
+      email:        'admin@disnastycircle.com',
       passwordHash: adminHash,
       name:         'Admin TDC',
       role:         'ADMIN',
@@ -57,8 +57,8 @@ async function main() {
 
   console.log('\n🎭 Base de données initialisée avec succès !')
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
-  console.log('📧 Admin email:    admin@dynastycircle.com')
-  console.log('🔑 Admin password: DynastyAdmin2026!')
+  console.log('📧 Admin email:    admin@disnastycircle.com')
+  console.log('🔑 Admin password: DisnastyAdmin2026!')
   console.log('🌐 Page soirée:    /soirees/bal-masque')
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
 }

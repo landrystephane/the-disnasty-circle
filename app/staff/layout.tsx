@@ -40,9 +40,9 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
       {/* SIDEBAR */}
       <aside className={styles.sidebar}>
         <div className={styles.sidebarLogo}>
-          <img src="/logo.png" alt="THE DYNASTY CIRCLE" style={{ height: '48px', width: 'auto', borderRadius: '4px' }} />
+          <img src="/logo.png" alt="THE DISNASTY CIRCLE" style={{ height: '48px', width: 'auto', borderRadius: '4px' }} />
           <div>
-            <p className={styles.logoName}>THE DYNASTY</p>
+            <p className={styles.logoName}>THE DISNASTY</p>
             <p className={styles.logoCircle}>CIRCLE</p>
           </div>
         </div>
@@ -77,7 +77,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
           <img src="/logo.png" alt="TDC" style={{ height: '32px', width: 'auto', borderRadius: '4px' }} />
           <span style={{ fontFamily: 'var(--font-serif)', color: 'var(--gold)', fontWeight: 700, fontSize: '1rem', letterSpacing: '0.05em' }}>
-            DYNASTY CIRCLE
+            DISNASTY CIRCLE
           </span>
         </div>
         <button

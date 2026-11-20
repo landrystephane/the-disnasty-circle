@@ -33,6 +33,10 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    const isTable = Boolean(body.isTable)
+    const tableName = body.tableName || (isTable ? 'Table VIP (En attente)' : null)
+    const initialStatus = isTable ? 'TABLE_PENDING' : 'PENDING'
+
     // Create reservation
     const reservation = await prisma.reservation.create({
       data: {
@@ -46,8 +50,10 @@ export async function POST(req: NextRequest) {
         wantsMask: finalMaskCount > 0,
         maskCount: finalMaskCount,
         message: message || null,
-        status: 'PENDING',
+        status: initialStatus,
         totalAmount,
+        isTable,
+        tableName,
       },
     })
 
@@ -67,13 +73,13 @@ export async function POST(req: NextRequest) {
         })
 
         transporter.sendMail({
-          from: `"THE DYNASTY CIRCLE — Système" <${user}>`,
+          from: `"THE DISNASTY CIRCLE — Système" <${user}>`,
           to: alertRecipient,
           subject: `✨ Nouvelle réservation : ${firstName} ${lastName} (${count} place(s))`,
           html: `
             <div style="font-family:sans-serif;background:#0d0d0d;color:#f5f0e8;padding:24px;border-radius:8px;border:1px solid #D4AF37;">
               <h2 style="color:#D4AF37;margin-top:0;">🎉 Nouvelle Réservation Reçue !</h2>
-              <p>Une personne vient de réserver sur le site <strong>THE DYNASTY CIRCLE</strong> :</p>
+              <p>Une personne vient de réserver sur le site <strong>THE DISNASTY CIRCLE</strong> :</p>
               <ul style="line-height:1.8;">
                 <li><strong>Client :</strong> ${firstName} ${lastName}</li>
                 <li><strong>Email :</strong> ${email}</li>
@@ -116,7 +122,18 @@ export async function GET(req: NextRequest) {
       include: {
         event:  { select: { title: true, slug: true, whatsappNumber: true } },
         phase:  { select: { name: true, price: true } },
-        tickets: { select: { id: true, qrCode: true, isUsed: true, sentAt: true } },
+        tickets: {
+          select: {
+            id: true,
+            qrCode: true,
+            ticketNumber: true,
+            isUsed: true,
+            sentAt: true,
+            hasMask: true,
+            isTableTicket: true,
+            tableName: true,
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
     })
@@ -131,7 +148,7 @@ export async function GET(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   try {
     const body = await req.json()
-    const { id, status, notes, totalAmount, wantsMask, ticketCount } = body
+    const { id, status, notes, totalAmount, wantsMask, ticketCount, maskCount, tableName, isTable } = body
     if (!id) return NextResponse.json({ error: 'id requis.' }, { status: 400 })
 
     const current = await prisma.reservation.findUnique({
@@ -144,9 +161,12 @@ export async function PATCH(req: NextRequest) {
       data: {
         ...(status ? { status } : {}),
         ...(notes !== undefined ? { notes } : {}),
-        ...(totalAmount !== undefined ? { totalAmount } : {}),
+        ...(totalAmount !== undefined ? { totalAmount: parseFloat(totalAmount) } : {}),
         ...(wantsMask !== undefined ? { wantsMask } : {}),
-        ...(ticketCount !== undefined ? { ticketCount } : {}),
+        ...(maskCount !== undefined ? { maskCount: parseInt(maskCount) } : {}),
+        ...(ticketCount !== undefined ? { ticketCount: parseInt(ticketCount) } : {}),
+        ...(tableName !== undefined ? { tableName } : {}),
+        ...(isTable !== undefined ? { isTable } : {}),
       },
     })
 

@@ -34,7 +34,7 @@ export async function generateMetadata({ params }: Props) {
   const event = await getEvent(slug)
   if (!event) return { title: 'Soirée introuvable' }
   return {
-    title: `${event.title} — THE DYNASTY CIRCLE`,
+    title: `${event.title} — THE DISNASTY CIRCLE`,
     description: event.description ?? `Réservez votre billet pour ${event.title}`,
   }
 }
@@ -57,8 +57,8 @@ export default async function EventPage({ params }: Props) {
       <nav className={styles.navbar}>
         <div className={`container ${styles.navInner}`}>
           <Link href="/" className={styles.navLogo}>
-            <img src="/logo.png" alt="THE DYNASTY CIRCLE" style={{ height: '42px', width: 'auto', borderRadius: '4px' }} />
-            <span className={styles.navLogoFull}>THE DYNASTY CIRCLE</span>
+            <img src="/logo.png" alt="THE DISNASTY CIRCLE" style={{ height: '42px', width: 'auto', borderRadius: '4px' }} />
+            <span className={styles.navLogoFull}>THE DISNASTY CIRCLE</span>
           </Link>
           <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'center' }}>
             <Link href="/#soirees" style={{ color: 'var(--text-muted)', fontSize: '0.85rem', letterSpacing: '0.05em' }}>
@@ -76,7 +76,7 @@ export default async function EventPage({ params }: Props) {
         )}
         <div className={styles.heroOverlay} />
         <div className={`container ${styles.heroContent}`}>
-          <p className={styles.heroEyebrow}>THE DYNASTY CIRCLE présente</p>
+          <p className={styles.heroEyebrow}>THE DISNASTY CIRCLE présente</p>
           <h1 className={`font-serif ${styles.heroTitle} text-shimmer`}>{event.title}</h1>
           {event.subtitle && (
             <p className={styles.heroSubtitle}>{event.subtitle}</p>
@@ -235,7 +235,7 @@ export default async function EventPage({ params }: Props) {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                 {STAFF_MEMBERS.map(member => {
                   const defaultMsg = encodeURIComponent(
-                    `Bonjour THE DYNASTY CIRCLE,\n\nJe souhaite avoir des informations avant de réserver pour la soirée *${event.title}* (${formatDate(event.date)}).`
+                    `Bonjour THE DISNASTY CIRCLE,\n\nJe souhaite avoir des informations avant de réserver pour la soirée *${event.title}* (${formatDate(event.date)}).`
                   )
                   const waUrl = `https://api.whatsapp.com/send?phone=${member.cleanPhone}&text=${defaultMsg}`
 

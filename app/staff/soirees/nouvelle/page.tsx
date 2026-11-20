@@ -420,7 +420,7 @@ export default function NouvelleSoiree() {
 
           <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
             <button type="submit" className="btn btn-gold btn-lg" disabled={loading || uploading} style={{ flex: 1 }}>
-              {loading ? 'Publication en cours...' : '✨ Publier la soirée sur THE DYNASTY CIRCLE'}
+              {loading ? 'Publication en cours...' : '✨ Publier la soirée sur THE DISNASTY CIRCLE'}
             </button>
             <Link href="/staff/soirees" className="btn btn-outline btn-lg">
               Annuler

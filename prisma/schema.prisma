@@ -8,21 +8,22 @@ datasource db {
 }
 
 model Event {
-  id             String   @id @default(cuid())
-  slug           String   @unique
-  title          String
-  subtitle       String?
-  date           DateTime
-  location       String
-  timeStart      String
-  description    String?
-  posterUrl      String?
-  dressCode      String?
-  includes       String?
-  status         String   @default("ACTIVE")
-  whatsappNumber String
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id              String   @id @default(cuid())
+  slug            String   @unique
+  title           String
+  subtitle        String?
+  date            DateTime
+  location        String
+  timeStart       String
+  entryCutoffTime String?  @default("00h00")
+  description     String?
+  posterUrl       String?
+  dressCode       String?
+  includes        String?
+  status          String   @default("ACTIVE")
+  whatsappNumber  String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   ticketPhases TicketPhase[]
   reservations Reservation[]
@@ -62,6 +63,8 @@ model Reservation {
   message     String?
   status      String   @default("PENDING")
   totalAmount Float?
+  isTable     Boolean  @default(false)
+  tableName   String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -75,11 +78,22 @@ model Ticket {
   qrCode        String    @unique
   ticketNumber  Int       @default(1)
   hasMask       Boolean   @default(false)
+  isTableTicket Boolean   @default(false)
+  tableName     String?
   isUsed        Boolean   @default(false)
   usedAt        DateTime?
   usedBy        String?
   sentAt        DateTime?
   createdAt     DateTime  @default(now())
+}
+
+model Review {
+  id         String   @id @default(cuid())
+  authorName String
+  rating     Int      @default(5)
+  comment    String
+  approved   Boolean  @default(true)
+  createdAt  DateTime @default(now())
 }
 
 model Expense {

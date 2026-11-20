@@ -60,7 +60,7 @@ function buildWhatsAppMessage(data: {
     ? `• Masque(s) sur place : *${data.maskCount}x* (+${maskTotal}€)\n`
     : ''
 
-  const message = `Bonjour THE DYNASTY CIRCLE,
+  const message = `Bonjour THE DISNASTY CIRCLE,
 
 Je m'appelle *${data.firstName} ${data.lastName}* et je souhaite reserver *${data.ticketCount} billet(s)* pour :
 
@@ -95,6 +95,10 @@ export default function ReservationForm({
   const [step, setStep] = useState<'form' | 'success'>('form')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [bookingType, setBookingType] = useState<'INDIVIDUAL' | 'TABLE'>('INDIVIDUAL')
+  const [tableSeats, setTableSeats] = useState(6)
+  const [wantsTableMasks, setWantsTableMasks] = useState(true)
+  const [tableMasks, setTableMasks] = useState(6)
 
   const [selectedCountryCode, setSelectedCountryCode] = useState('+32') // Default to Belgique or France
   const [phoneRaw, setPhoneRaw] = useState('')
@@ -146,36 +150,68 @@ export default function ReservationForm({
 
     setLoading(true)
     try {
+      const isTable = bookingType === 'TABLE'
+      const payload = isTable ? {
+        firstName: form.firstName,
+        lastName: form.lastName,
+        email: form.email,
+        phone: fullPhone,
+        ticketCount: tableSeats,
+        wantsMask: wantsTableMasks,
+        maskCount: wantsTableMasks ? tableMasks : 0,
+        isTable: true,
+        tableName: `Table VIP (${tableSeats} pers.)`,
+        message: form.message,
+        eventId,
+        eventSlug,
+      } : {
+        ...form,
+        phone: fullPhone,
+        wantsMask: form.maskCount > 0,
+        maskCount: form.maskCount,
+        eventId,
+        eventSlug,
+      }
+
       const res = await fetch('/api/reservations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...form,
-          phone: fullPhone,
-          wantsMask: form.maskCount > 0,
-          maskCount: form.maskCount,
-          eventId,
-          eventSlug,
-        }),
+        body: JSON.stringify(payload),
       })
 
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Erreur lors de la réservation.')
 
-      const msg = buildWhatsAppMessage({
-        firstName:   form.firstName,
-        lastName:    form.lastName,
-        fullPhone,
-        email:       form.email,
-        ticketCount: form.ticketCount,
-        maskCount:   form.maskCount,
-        phaseName:   selectedPhase?.name ?? 'Standard',
-        phasePrice:  selectedPhase?.price ?? 0,
-        maskPrice,
-        eventTitle,
-        eventDate,
-        eventLocation,
-      })
+      let msg = ''
+      if (isTable) {
+        const rawMsg =
+          `Bonjour THE DISNASTY CIRCLE,\n\n` +
+          `Je m'appelle *${form.firstName} ${form.lastName}* et je souhaite reserver une *TABLE VIP* pour la soiree *${eventTitle}* :\n\n` +
+          `• Date : *${eventDate}*\n` +
+          `• Lieu : *${eventLocation}*\n` +
+          `• Nombre d'invites prevu : *${tableSeats} personnes*\n` +
+          `• Masques sur place : *${wantsTableMasks ? `${tableMasks} masque(s)` : 'Non / Apportent leurs masques'}*\n` +
+          (form.message ? `• Demande particuliere : ${form.message}\n` : '') +
+          `• Mon email : *${form.email}*\n` +
+          `• Mon telephone : *${fullPhone}*\n\n` +
+          `Pourriez-vous me transmettre les options de tables disponibles, modalites et la carte des bouteilles ? Merci !`
+        msg = encodeURIComponent(rawMsg)
+      } else {
+        msg = buildWhatsAppMessage({
+          firstName:   form.firstName,
+          lastName:    form.lastName,
+          fullPhone,
+          email:       form.email,
+          ticketCount: form.ticketCount,
+          maskCount:   form.maskCount,
+          phaseName:   selectedPhase?.name ?? 'Standard',
+          phasePrice:  selectedPhase?.price ?? 0,
+          maskPrice,
+          eventTitle,
+          eventDate,
+          eventLocation,
+        })
+      }
 
       setEncodedMessage(msg)
       setStep('success')
@@ -271,8 +307,53 @@ export default function ReservationForm({
 
   return (
     <form onSubmit={handleSubmit} className={styles.form}>
-      {/* Phase selection */}
-      {phases.length > 1 && (
+      {/* SÉLECTEUR BILLET INDIVIDUEL OU TABLE VIP */}
+      <div style={{
+        display: 'flex',
+        gap: '0.5rem',
+        marginBottom: '1.25rem',
+        padding: '0.35rem',
+        background: 'rgba(255, 255, 255, 0.05)',
+        borderRadius: '10px',
+        border: '1px solid var(--border)'
+      }}>
+        <button
+          type="button"
+          onClick={() => setBookingType('INDIVIDUAL')}
+          className={`btn btn-sm ${bookingType === 'INDIVIDUAL' ? 'btn-gold' : 'btn-outline'}`}
+          style={{ flex: 1, padding: '0.5rem', fontSize: '0.85rem' }}
+        >
+          🎟️ Billets Individuels
+        </button>
+        <button
+          type="button"
+          onClick={() => setBookingType('TABLE')}
+          className={`btn btn-sm ${bookingType === 'TABLE' ? 'btn-gold' : 'btn-outline'}`}
+          style={{ flex: 1, padding: '0.5rem', fontSize: '0.85rem' }}
+        >
+          🍾 Table VIP & Salons
+        </button>
+      </div>
+
+      {bookingType === 'TABLE' && (
+        <div style={{
+          background: 'linear-gradient(135deg, rgba(212, 175, 55, 0.12) 0%, rgba(20, 16, 5, 0.7) 100%)',
+          border: '1px solid var(--gold)',
+          borderRadius: '10px',
+          padding: '1rem',
+          marginBottom: '1.25rem',
+          fontSize: '0.86rem',
+          lineHeight: 1.5,
+        }}>
+          <strong style={{ color: 'var(--gold)', display: 'block', fontSize: '0.98rem', marginBottom: '0.3rem' }}>
+            🍾 Espace Privilège & Tables VIP
+          </strong>
+          Accès coupe-file prioritaire, table réservée, service bouteilles & masques. Les modalités et tarifs dépendent du choix de vos bouteilles et sont finalisés directement sur WhatsApp avec votre référent.
+        </div>
+      )}
+
+      {/* Phase selection (uniquement en individuel) */}
+      {bookingType === 'INDIVIDUAL' && phases.length > 1 && (
         <div className={styles.phases}>
           <p className="form-label" style={{ marginBottom: '0.75rem' }}>Catégorie de billet</p>
           <div className={styles.phaseGrid}>
@@ -373,112 +454,176 @@ export default function ReservationForm({
         </p>
       </div>
 
-      {/* Ticket count */}
-      <div className="form-group">
-        <label className="form-label">Nombre de billets *</label>
-        <div className={styles.counter}>
-          <button
-            type="button"
-            className={styles.counterBtn}
-            onClick={() => setForm(f => {
-              const newCount = Math.max(1, f.ticketCount - 1)
-              return { ...f, ticketCount: newCount, maskCount: Math.min(newCount, f.maskCount) }
-            })}
-          >−</button>
-          <span className={styles.counterValue}>{form.ticketCount}</span>
-          <button
-            type="button"
-            className={styles.counterBtn}
-            onClick={() => setForm(f => ({ ...f, ticketCount: Math.min(10, f.ticketCount + 1) }))}
-          >+</button>
-        </div>
-      </div>
-
-      {/* Mask option (uniquement pour les événements masqués) */}
-      {showMask && (
-        <div style={{
-          background: 'rgba(212, 175, 55, 0.06)',
-          border: '1px solid var(--gold-border)',
-          borderRadius: '10px',
-          padding: '1rem 1.25rem',
-          marginBottom: '1.25rem',
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
-            <div>
-              <p style={{ fontWeight: 600, color: 'var(--gold)', margin: 0, fontSize: '0.95rem' }}>
-                🎭 Masque vénitien sur place (+{maskPrice}€ / unité)
-              </p>
-              <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: '0.2rem 0 0' }}>
-                Combien d&apos;invités ont besoin d&apos;un masque fourni sur place ?
-              </p>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+      {/* Ticket count (Individuel) ou Table Seats (Table VIP) */}
+      {bookingType === 'INDIVIDUAL' ? (
+        <>
+          <div className="form-group">
+            <label className="form-label">Nombre de billets *</label>
+            <div className={styles.counter}>
               <button
                 type="button"
-                className="btn btn-outline btn-sm"
-                onClick={() => setForm(f => ({ ...f, maskCount: Math.max(0, f.maskCount - 1) }))}
-                disabled={form.maskCount <= 0}
-                style={{ width: '34px', height: '34px', padding: 0, fontSize: '1.2rem', lineHeight: '1' }}
-              >
-                −
-              </button>
-              <span style={{ minWidth: '32px', textAlign: 'center', fontWeight: 700, fontSize: '1.15rem', color: form.maskCount > 0 ? 'var(--gold)' : 'var(--text-muted)' }}>
-                {form.maskCount}
-              </span>
+                className={styles.counterBtn}
+                onClick={() => setForm(f => {
+                  const newCount = Math.max(1, f.ticketCount - 1)
+                  return { ...f, ticketCount: newCount, maskCount: Math.min(newCount, f.maskCount) }
+                })}
+              >−</button>
+              <span className={styles.counterValue}>{form.ticketCount}</span>
               <button
                 type="button"
-                className="btn btn-outline btn-sm"
-                onClick={() => setForm(f => ({ ...f, maskCount: Math.min(form.ticketCount, f.maskCount + 1) }))}
-                disabled={form.maskCount >= form.ticketCount}
-                style={{ width: '34px', height: '34px', padding: 0, fontSize: '1.2rem', lineHeight: '1' }}
-              >
-                +
-              </button>
+                className={styles.counterBtn}
+                onClick={() => setForm(f => ({ ...f, ticketCount: Math.min(10, f.ticketCount + 1) }))}
+              >+</button>
             </div>
           </div>
-          <p style={{ fontSize: '0.78rem', color: form.maskCount > 0 ? 'var(--gold)' : 'var(--text-dim)', marginTop: '0.5rem', marginBottom: 0 }}>
-            {form.maskCount === 0
-              ? 'Aucun masque ajouté (vous venez avec vos propres masques)'
-              : `✓ ${form.maskCount} masque${form.maskCount > 1 ? 's' : ''} sur place (+${form.maskCount * maskPrice}€) pour vos ${form.ticketCount} place${form.ticketCount > 1 ? 's' : ''}`}
-          </p>
+
+          {/* Mask option (uniquement pour les événements masqués) */}
+          {showMask && (
+            <div style={{
+              background: 'rgba(212, 175, 55, 0.06)',
+              border: '1px solid var(--gold-border)',
+              borderRadius: '10px',
+              padding: '1rem 1.25rem',
+              marginBottom: '1.25rem',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+                <div>
+                  <p style={{ fontWeight: 600, color: 'var(--gold)', margin: 0, fontSize: '0.95rem' }}>
+                    🎭 Masque vénitien sur place (+{maskPrice}€ / unité)
+                  </p>
+                  <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: '0.2rem 0 0' }}>
+                    Combien d&apos;invités ont besoin d&apos;un masque fourni sur place ?
+                  </p>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-sm"
+                    onClick={() => setForm(f => ({ ...f, maskCount: Math.max(0, f.maskCount - 1) }))}
+                    disabled={form.maskCount <= 0}
+                    style={{ width: '34px', height: '34px', padding: 0, fontSize: '1.2rem', lineHeight: '1' }}
+                  >
+                    −
+                  </button>
+                  <span style={{ minWidth: '32px', textAlign: 'center', fontWeight: 700, fontSize: '1.15rem', color: form.maskCount > 0 ? 'var(--gold)' : 'var(--text-muted)' }}>
+                    {form.maskCount}
+                  </span>
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-sm"
+                    onClick={() => setForm(f => ({ ...f, maskCount: Math.min(form.ticketCount, f.maskCount + 1) }))}
+                    disabled={form.maskCount >= form.ticketCount}
+                    style={{ width: '34px', height: '34px', padding: 0, fontSize: '1.2rem', lineHeight: '1' }}
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+              <p style={{ fontSize: '0.78rem', color: form.maskCount > 0 ? 'var(--gold)' : 'var(--text-dim)', marginTop: '0.5rem', marginBottom: 0 }}>
+                {form.maskCount === 0
+                  ? 'Aucun masque ajouté (vous venez avec vos propres masques)'
+                  : `✓ ${form.maskCount} masque${form.maskCount > 1 ? 's' : ''} sur place (+${form.maskCount * maskPrice}€) pour vos ${form.ticketCount} place${form.ticketCount > 1 ? 's' : ''}`}
+              </p>
+            </div>
+          )}
+        </>
+      ) : (
+        /* Configuration Table VIP */
+        <div style={{ marginBottom: '1.25rem' }}>
+          <div className="form-group">
+            <label className="form-label">Nombre d&apos;invités assis à la table *</label>
+            <select
+              className="form-input"
+              value={tableSeats}
+              onChange={e => {
+                const val = parseInt(e.target.value)
+                setTableSeats(val)
+                if (wantsTableMasks) setTableMasks(val)
+              }}
+              style={{ background: '#141414', color: '#fff' }}
+            >
+              {[2, 3, 4, 5, 6, 7, 8, 10, 12, 15, 20].map(n => (
+                <option key={n} value={n}>{n} personnes</option>
+              ))}
+            </select>
+          </div>
+
+          <div style={{
+            background: 'rgba(212, 175, 55, 0.08)',
+            border: '1px solid var(--gold-border)',
+            borderRadius: '10px',
+            padding: '0.85rem 1rem',
+            marginTop: '0.75rem',
+          }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', cursor: 'pointer', fontSize: '0.88rem', color: '#fff' }}>
+              <input
+                type="checkbox"
+                checked={wantsTableMasks}
+                onChange={e => setWantsTableMasks(e.target.checked)}
+                style={{ width: '18px', height: '18px', accentColor: 'var(--gold)' }}
+              />
+              <span>🎭 <strong>Prévoir des masques sur place</strong> ({tableSeats} masques pour votre table)</span>
+            </label>
+          </div>
         </div>
       )}
 
       {/* Message */}
       <div className="form-group">
-        <label className="form-label">Message (optionnel)</label>
+        <label className="form-label">{bookingType === 'TABLE' ? 'Préférences de bouteilles ou salon (optionnel)' : 'Message (optionnel)'}</label>
         <textarea
           className="form-input"
-          placeholder="Une question ou une demande particulière..."
+          placeholder={bookingType === 'TABLE' ? 'Ex : 2x Dom Pérignon, 1x Belvedere, salon près du DJ...' : 'Une question ou une demande particulière...'}
           rows={3}
           value={form.message}
           onChange={e => setForm(f => ({ ...f, message: e.target.value }))}
         />
       </div>
 
-      {/* Total */}
-      <div className={styles.total}>
-        <div className={styles.totalRow}>
-          <span>Billets ({form.ticketCount} × {selectedPhase?.price ?? 0}€)</span>
-          <span>{ticketTotal}€</span>
-        </div>
-        {form.maskCount > 0 && (
+      {/* Total pour individuel OU Récapitulatif Table */}
+      {bookingType === 'INDIVIDUAL' ? (
+        <div className={styles.total}>
           <div className={styles.totalRow}>
-            <span>Masques ({form.maskCount} × {maskPrice}€)</span>
-            <span>{maskTotal}€</span>
+            <span>Billets ({form.ticketCount} × {selectedPhase?.price ?? 0}€)</span>
+            <span>{ticketTotal}€</span>
           </div>
-        )}
-        <div className={`${styles.totalRow} ${styles.totalFinal}`}>
-          <span>Total</span>
-          <span className="text-gold">{grandTotal}€</span>
+          {form.maskCount > 0 && (
+            <div className={styles.totalRow}>
+              <span>Masques ({form.maskCount} × {maskPrice}€)</span>
+              <span>{maskTotal}€</span>
+            </div>
+          )}
+          <div className={`${styles.totalRow} ${styles.totalFinal}`}>
+            <span>Total</span>
+            <span className="text-gold">{grandTotal}€</span>
+          </div>
         </div>
-      </div>
+      ) : (
+        <div style={{
+          background: 'rgba(255, 255, 255, 0.03)',
+          border: '1px solid var(--border)',
+          borderRadius: '10px',
+          padding: '1rem',
+          marginBottom: '1.25rem',
+          textAlign: 'center',
+          fontSize: '0.88rem',
+        }}>
+          <span style={{ color: 'var(--gold)', fontWeight: 700, fontSize: '0.95rem' }}>
+            🍾 Table VIP ({tableSeats} personnes) · Sur Devis Personnalisé
+          </span>
+          <p style={{ margin: '0.25rem 0 0', color: 'var(--text-muted)', fontSize: '0.78rem' }}>
+            Le montant sera fixé en direct sur WhatsApp selon vos bouteilles, puis les billets individuels vous seront envoyés.
+          </p>
+        </div>
+      )}
 
       {error && <p className={styles.error}>{error}</p>}
 
       <button type="submit" className="btn btn-gold btn-lg" disabled={loading} style={{ width: '100%' }}>
         {loading ? (
           <><span className="spinner" style={{ width: 18, height: 18 }} /> Enregistrement en cours...</>
+        ) : bookingType === 'TABLE' ? (
+          '🍾 Réserver ma Table VIP sur WhatsApp →'
         ) : (
           'Continuer vers la finalisation WhatsApp →'
         )}

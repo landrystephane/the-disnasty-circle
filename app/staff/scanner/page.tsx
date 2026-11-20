@@ -15,6 +15,8 @@ type ScanResult = {
   hasMask?: boolean
   maskInstruction?: string
   wantsMask?: boolean
+  isTable?: boolean
+  tableName?: string | null
   reason?: string
   usedAt?: string
   stats?: {
@@ -300,7 +302,7 @@ export default function ScannerPage() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
               <div>
                 <h1 className={`font-serif ${styles.title}`} style={{ margin: 0 }}>Scanner QR</h1>
-                <p className={styles.subtitle} style={{ margin: '0.2rem 0 0' }}>Contrôle d&apos;accès en direct • THE DYNASTY CIRCLE</p>
+                <p className={styles.subtitle} style={{ margin: '0.2rem 0 0' }}>Contrôle d&apos;accès en direct • THE DISNASTY CIRCLE</p>
               </div>
               <button
                 onClick={fetchAttendance}
@@ -385,6 +387,24 @@ export default function ScannerPage() {
                       </p>
                     )}
                     <p className={styles.resultMeta}>{result.event} · {result.phase}</p>
+
+                    {result.isTable && (
+                      <div style={{
+                        margin: '0.8rem 0',
+                        padding: '0.75rem 1rem',
+                        borderRadius: '10px',
+                        background: 'linear-gradient(135deg, rgba(201, 168, 76, 0.25), rgba(0,0,0,0.7))',
+                        border: '1px solid var(--gold)',
+                        color: 'var(--gold)',
+                        fontWeight: 700,
+                        fontSize: '1rem',
+                      }}>
+                        🍾 TABLE VIP : {result.tableName || 'Table Réservée'}
+                        <div style={{ fontSize: '0.8rem', color: '#fff', fontWeight: 400, marginTop: '0.2rem' }}>
+                          Accompagner l&apos;invité à sa table VIP.
+                        </div>
+                      </div>
+                    )}
 
                     {result.hasMask ? (
                       <div style={{

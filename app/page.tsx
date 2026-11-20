@@ -57,11 +57,11 @@ export default async function HomePage() {
           <Link href="/" className={styles.navLogo}>
             <img
               src="/logo.png"
-              alt="THE DYNASTY CIRCLE"
+              alt="THE DISNASTY CIRCLE"
               className={styles.navLogoImg}
               style={{ height: '42px', width: 'auto', borderRadius: '4px' }}
             />
-            <span className={styles.navLogoFull}>THE DYNASTY CIRCLE</span>
+            <span className={styles.navLogoFull}>THE DISNASTY CIRCLE</span>
           </Link>
           <div className={styles.navLinks}>
             <Link href="#soirees" className={styles.navLink}>Événements</Link>
@@ -78,7 +78,7 @@ export default async function HomePage() {
           <div style={{ marginBottom: '1.75rem', display: 'flex', justifyContent: 'center' }}>
             <img
               src="/logo.png"
-              alt="THE DYNASTY CIRCLE Logo Officiel"
+              alt="THE DISNASTY CIRCLE Logo Officiel"
               style={{
                 width: '135px',
                 height: 'auto',
@@ -91,7 +91,7 @@ export default async function HomePage() {
           <p className={styles.heroEyebrow}>✦ Cercle Privé & Événements d&apos;Exception ✦</p>
 
           <h1 className={`${styles.heroTitle} font-serif`}>
-            THE DYNASTY<br />
+            THE DISNASTY<br />
             <span className="text-shimmer">CIRCLE</span>
           </h1>
 
@@ -269,10 +269,10 @@ export default async function HomePage() {
             <div className={styles.footerLogo}>
               <img
                 src="/logo.png"
-                alt="THE DYNASTY CIRCLE"
+                alt="THE DISNASTY CIRCLE"
                 style={{ height: '48px', width: 'auto', borderRadius: '4px' }}
               />
-              <span style={{ fontWeight: 600, letterSpacing: '0.1em' }}>THE DYNASTY CIRCLE</span>
+              <span style={{ fontWeight: 600, letterSpacing: '0.1em' }}>THE DISNASTY CIRCLE</span>
             </div>
             <p className={styles.footerTagline}>
               Prestige • Nightlife • Événements Exclusifs à Paris
@@ -281,7 +281,7 @@ export default async function HomePage() {
               <span>ÉLÉGANCE</span><span>•</span><span>PRESTIGE</span><span>•</span><span>MYSTÈRE</span>
             </div>
             <p style={{ color: 'var(--text-dim)', fontSize: '0.8rem', marginTop: '1rem' }}>
-              © {new Date().getFullYear()} THE DYNASTY CIRCLE. Tous droits réservés.
+              © {new Date().getFullYear()} THE DISNASTY CIRCLE. Tous droits réservés.
             </p>
           </div>
         </div>

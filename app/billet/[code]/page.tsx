@@ -31,7 +31,7 @@ export async function generateMetadata({ params }: Props) {
 
   if (!ticket) return { title: 'Billet Introuvable' }
   return {
-    title: `Billet Officiel — ${ticket.reservation.event.title} | THE DYNASTY CIRCLE`,
+    title: `Billet Officiel — ${ticket.reservation.event.title} | THE DISNASTY CIRCLE`,
     description: `Billet d'entrée pour ${ticket.reservation.firstName} ${ticket.reservation.lastName}`,
   }
 }
@@ -80,8 +80,8 @@ export default async function BilletPage({ params }: Props) {
       {/* Top Bar (No Print) */}
       <div className={styles.topBar}>
         <Link href="/" className={styles.brand}>
-          <img src="/logo.png" alt="THE DYNASTY CIRCLE" style={{ height: '36px', width: 'auto', borderRadius: '4px' }} />
-          <span>THE DYNASTY CIRCLE</span>
+          <img src="/logo.png" alt="THE DISNASTY CIRCLE" style={{ height: '36px', width: 'auto', borderRadius: '4px' }} />
+          <span>THE DISNASTY CIRCLE</span>
         </Link>
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
           <PrintButton />
@@ -139,12 +139,12 @@ export default async function BilletPage({ params }: Props) {
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.75rem' }}>
               <img
                 src="/logo.png"
-                alt="THE DYNASTY CIRCLE"
+                alt="THE DISNASTY CIRCLE"
                 style={{ height: '75px', width: 'auto', borderRadius: '6px', filter: 'drop-shadow(0 0 12px rgba(212,175,55,0.4))' }}
               />
             </div>
             <p className={styles.eyebrow}>
-              THE DYNASTY CIRCLE • BILLET {ticketNumber} SUR {totalTickets}
+              THE DISNASTY CIRCLE • BILLET {ticketNumber} SUR {totalTickets}
             </p>
             <h1 className={styles.eventTitle}>{event.title}</h1>
             {event.subtitle && <p className={styles.eventSubtitle}>{event.subtitle}</p>}
@@ -201,6 +201,23 @@ export default async function BilletPage({ params }: Props) {
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: '0.2rem 0 0' }}>
                   {r.email} {r.phone ? `• ${r.phone}` : ''}
                 </p>
+                {((ticket as any).isTableTicket || (ticket as any).tableName || r.isTable) && (
+                  <div style={{
+                    marginTop: '0.6rem',
+                    padding: '0.4rem 0.8rem',
+                    borderRadius: '6px',
+                    background: 'rgba(212, 175, 55, 0.15)',
+                    border: '1px solid rgba(212, 175, 55, 0.4)',
+                    color: 'var(--gold)',
+                    fontWeight: 700,
+                    fontSize: '0.85rem',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                  }}>
+                    🍾 {(ticket as any).tableName || r.tableName || 'Table VIP'} • Place {ticketNumber}/{totalTickets}
+                  </div>
+                )}
               </div>
               <div style={{ textAlign: 'right' }}>
                 <p className={styles.metaLabel}>Catégorie & Dotation</p>
@@ -277,7 +294,7 @@ export default async function BilletPage({ params }: Props) {
           <div className={styles.ticketFooter}>
             <p>Ce billet est strictement personnel et non cessible. 1 scan unique à l&apos;entrée.</p>
             <p style={{ marginTop: '0.3rem', color: 'var(--gold)', fontSize: '0.75rem' }}>
-              THE DYNASTY CIRCLE • ÉLÉGANCE • PASSION • MYSTÈRE
+              THE DISNASTY CIRCLE • ÉLÉGANCE • PASSION • MYSTÈRE
             </p>
           </div>
         </div>
