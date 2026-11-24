@@ -190,6 +190,9 @@ export default async function HomePage() {
               {events.map((event) => {
                 const price = getActivePrice(event.ticketPhases)
                 const isClosed = event.status === 'CLOSED'
+                const displayLocation = (event.slug === 'bal-masque' && (!event.location || event.location === 'Paris, Île-de-France'))
+                  ? "20, rue de l'Avenir, 93800 Épinay-sur-Seine"
+                  : event.location
                 return (
                   <Link
                     key={event.id}
@@ -240,7 +243,7 @@ export default async function HomePage() {
                         </div>
                         <div className={styles.eventMetaItem}>
                           <span>📍</span>
-                          <span>{event.location}</span>
+                          <span>{displayLocation}</span>
                         </div>
                         <div className={styles.eventMetaItem}>
                           <span>🕗</span>

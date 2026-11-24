@@ -60,6 +60,15 @@ export default async function BilletPage({ params }: Props) {
   const ticketNumber = (ticket as any).ticketNumber ?? 1
   const totalTickets = r.ticketCount
 
+  const isBalMasque = event.slug === 'bal-masque' || event.title.toLowerCase().includes('masque')
+  const displayLocation = (isBalMasque && (!event.location || event.location === 'Paris, Île-de-France'))
+    ? "20, rue de l'Avenir, 93800 Épinay-sur-Seine"
+    : (event.location || "20, rue de l'Avenir, 93800 Épinay-sur-Seine")
+  const displayDressCode = (isBalMasque && (!event.dressCode || event.dressCode === 'Tenue élégante exigée'))
+    ? "Tenue élégante & Masque obligatoires"
+    : (event.dressCode || "Tenue élégante & Masque obligatoires")
+  const mapDirectionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(displayLocation)}`
+
   const qrDataUrl = await QRCode.toDataURL(ticket.qrCode, {
     width: 320,
     margin: 2,
@@ -182,13 +191,54 @@ export default async function BilletPage({ params }: Props) {
                 <span className={styles.metaValue}>Dès {event.timeStart}</span>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>📍 Lieu</span>
-                <span className={styles.metaValue}>{event.location}</span>
+                <span className={styles.metaLabel}>📍 Lieu & Accès</span>
+                <span className={styles.metaValue}>{displayLocation}</span>
+                <a
+                  href={mapDirectionsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    color: 'var(--gold)',
+                    fontSize: '0.8rem',
+                    marginTop: '0.25rem',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.3rem',
+                    textDecoration: 'none',
+                    fontWeight: 600,
+                  }}
+                >
+                  🗺️ Itinéraire GPS →
+                </a>
               </div>
               <div className={styles.metaItem}>
                 <span className={styles.metaLabel}>👔 Dress code</span>
-                <span className={styles.metaValueGold}>{event.dressCode || 'Tenue élégante exigée'}</span>
+                <span className={styles.metaValueGold}>{displayDressCode}</span>
+                {isBalMasque && (
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                    Port du masque obligatoire
+                  </span>
+                )}
               </div>
+            </div>
+
+            {/* Inclusions & Bar notice on ticket */}
+            <div style={{
+              marginTop: '1.25rem',
+              padding: '0.75rem 1rem',
+              borderRadius: '8px',
+              background: 'rgba(212, 175, 55, 0.05)',
+              border: '1px solid rgba(212, 175, 55, 0.2)',
+              fontSize: '0.82rem',
+              color: 'var(--text-muted)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '0.5rem',
+            }}>
+              <span>🍸 <strong>2 boissons offertes</strong> incluses + Petite restauration</span>
+              <span style={{ color: 'var(--gold)' }}>🍸 Bar à disposition pour consommations supplémentaires</span>
             </div>
 
             {/* Guest & Tier */}
